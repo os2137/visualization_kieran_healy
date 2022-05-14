@@ -1,0 +1,1810 @@
+---
+title: "Data Visualization A practical introduction  by Kieran Healy"
+output:
+  html_document:
+    df_print: paged
+---
+
+[Data Visualization A practical introduction by Kieran Healy] (<https://socviz.co/groupfacettx.html#groupfacettx>)
+
+Have a practical sense for why some graphs and figures work well, while others may fail to inform or actively mislead.
+
+Free tools for coding have been around for a long time, but in recent years what you might call the "ecology of assistance" has gotten better.
+
+. If you know about R already but only want to learn the core of ggplot, then after installing the software descibed below, focus on Chapters 3 through 5. Chapter 6 (on models)
+
+Each chapter ends with a section suggesting where to go next (apart from continuing to read the book). Sometimes I suggest other books or websites to explore. I also ask questions or pose some challenges that extend the material covered in the chapter, encouraging you to use the concepts and skills you have learned.
+
+a \#\#\# Before you begin
+
+```{r}
+my_packages <- c("tidyverse", "broom", "coefplot", "cowplot",
+                 "gapminder", "GGally", "ggrepel", "ggridges", "gridExtra",
+                 "here", "interplot", "margins", "maps", "mapproj",
+                 "mapdata", "MASS", "quantreg", "rlang", "scales",
+                 "survey", "srvyr", "viridis", "viridisLite", "devtools")
+```
+
+```{r}
+library(tidyverse)
+library(broom)
+library(coefplot)
+library(cowplot)
+library(gapminder)
+library(GGally)
+library(ggrepel)
+library(ggridges)
+library(gridExtra)
+library(here)
+library(interplot)
+library(margins)
+library(maps)
+library(mapproj)
+library(mapdata)
+library(MASS)
+library(quantreg)
+library(rlang)
+library(scales)
+library(survey)
+library(srvyr)
+library(viridis)
+library(viridisLite)
+library(devtools)
+library(socviz)
+```
+
+```{r}
+# install.packages(my_packages, repos = "http://cran.rstudio.com")
+```
+
+#  {.tabset}
+
+## Chapter 3
+
+```{r}
+gapminder
+```
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, 
+                                            y = lifeExp))
+```
+
+```{r}
+str(p)
+```
+
+```{r}
+p + geom_point()
+```
+
+#### 3.4 Build your plots layer by layer
+
+We will learn more about the different geoms (or types of plot) available, and find out about the functions that control the coordinate system, scales, guiding elements (like labels and tick marks), and thematic features of plots. This will allow us to make much more sophisticated plots surprisingly fast. Conceptually, however, we will always be doing the same thing. We will start with a table of data that has been tidied, and then we will:
+
+1.  Tell the ggplot() function what our data is. The data = ... step.
+2.  Tell ggplot() what relationships we want to see.For convenience we will put the results of the first two steps in an object called p. The mapping = aes(...) step.
+3.  Tell ggplot how we want to see the relationships in our data.C hoose a geom.
+4.  Layer on geoms as needed, by adding them to the p object one at a time.
+5.  Use some additional functions to adjust scales, labels, tick marks, titles. We'll learn more about some of these functions shortly.
+
+The scale\_, family, labs() and guides() functions.
+
+```{r}
+p + geom_smooth()
+```
+
+You can see right away that some of these geoms do a lot more than simply put points on a grid. Here geom\_smooth() has calculated a smoothed line for us and shaded in a ribbon showing the standard error for the line. If we want to see the data points and the line together, we simply add geom\_point() back in:
+
+```{r}
+p + geom_point() + geom_smooth()
+```
+
+The console message R tells you the geom\_smooth() function is using a method called gam, which in this case means it has fit a generalized additive model. This suggests that maybe there are other methods that geom\_smooth() understands, and which we might tell it to use instead. Instructions are given to functions via their arguments, so we can try adding method = "lm" (for "linear model") as an argument to geom\_smooth():
+
+```{r}
+p + geom_point() + geom_smooth(method = "lm")
+```
+
+We did not have to tell geom\_point() or geom\_smooth() where their data was coming from, or what mappings they should use. They inherit this information from the original p object. As we'll see later, it's possible to give geoms separate instructions that they will follow instead. But in the absence of any other information, the geoms will look for the instructions it needs in the ggplot() function, or the object created by it.
+
+In our plot, the data is quite bunched up against the left side. Gross Domestic Product per capita is not normally distributed across our country years. The x-axis scale would probably look better if it were transformed from a linear scale to a log scale. For this we can use a function called scale\_x\_log10(). As you might expect this function scales the x-axis of a plot to a log 10 basis. To use it we just add it to the plot:
+
+```{r}
+p + geom_point() +
+  geom_smooth(method = "gam") + 
+  scale_x_log10()
+```
+
+The x-axis transformation repositions the points, and also changes the shape the smoothed line. (We switched back to gam from lm.) While ggplot() and its associated functions have not made any changes to our underlying data frame, the scale transformation is applied to the data before the smoother is layered on to the plot. There are a variety of scale transformations that you can use in just this way. Each is named for the transformation you want to apply, and the axis you want to applying it to. In this case we use scale\_x\_log10().
+
+At this point, if our goal was just to show a plot of Life Expectancy vs GDP using sensible scales and adding a smoother, we would be thinking about polishing up the plot with nicer axis labels and a title. Perhaps we might also want to replace the scientific notation on the x-axis with the dollar value it actually represents. We can do both of these things quite easily. Let's take care of the scale first. The labels on the tick-marks can be controlled through the scale\_ functions. While it's possible to roll your own function to label axes (or just supply your labels manually, as we will see later), there's also a handy scales library that contains some useful pre-made formatting functions. We can either load the whole library with library(scales) or, more conveniently, just grab the specific formatter we want from that library. Here it's the dollar() function. To grab a function directly from a library we have not loaded, we use the syntax thelibrary::thefunction. So, we can do this:
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+
+p + geom_point() + 
+  geom_smooth(method = "gam") + 
+  scale_x_log10(labels = scales:: dollar)
+```
+
+We will learn more about scale transformations later. For now, just remember two things about them. First, you can directly transform your x or y axis by adding something like scale\_x\_log10() or scale\_y\_log10() to your plot. When you do so, the x or y axis will be transformed and, by default, the tick marks on the axis will be labeled using scientific notation. Second, you can give these scale\_ functions a labels argument that reformats the text printed underneath the tick marks on the axes. Inside the scale\_x\_log10() function try labels=scales::comma, for example.
+
+```{r}
+p + geom_point() + 
+  geom_smooth(method = "gam") + 
+  scale_x_log10(labels = scales::comma)
+```
+
+### 3.5 Mapping aesthetics vs setting them
+
+An aesthetic mapping specifies that a variable will be expressed by one of the available visual elements, such as size, or color, or shape, and so on. As we've seen, we map variables to aesthetics like this:
+
+```{r}
+p <- ggplot(data = gapminder, 
+            aes(x = gdpPercap, 
+                y = lifeExp, 
+                color = continent))
+```
+
+This code does not give a direct instruction like "color the points purple". Instead it says, "the property 'color' will represent the variable continent", or "color will map continent". If we want to turn all the points in the figure purple, we do not do it through the mapping function. Look at what happens when we try:
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp,
+                          color = "purple"))
+
+p + geom_point() + 
+  geom_smooth(method = "loess") +
+  scale_x_log10()
+```
+
+What has happened here? Why is there a legend saying "purple"? And why have the points all turned pinkish-red instead of purple? Remember, an aesthetic is a mapping of variables in your data to properties you can see on the graph. The aes() function is where that mapping is specified, and the function is trying to do its job. It wants to map a variable to the color aesthetic, so it assumes you are giving it a variable.Just as in Chapter 1, when we were able to write 'my\_numbers + 1' to add one to each element of the vector. We have only given it one word, though---"purple". Still, aes() will do its best to treat that word as though it were a variable. A variable should have as many observations as there are rows in the data, so aes() falls back on R's recycling rules for making vectors of different lengths match up.
+
+In effect, this creates a new categorical variable for your data. The string "purple" is recycled for every row of your data. Now you have a new column. Every element in it has the same value, "purple". Then ggplot plots the results on the graph as you've asked it to, by mapping it to the color aesthetic. It dutifully makes a legend for this new variable. By default, ggplot displays the points falling into the category "purple" (which is all of them) using its default first-category hue ... which is red.
+
+The aes() function is for mappings only. Do not use it to change properties to a particular value. If we want to set a property, we do it in the geom\_ we are using, and outside the mapping = aes(...) step. Try this:
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp))
+p + geom_point(color = "purple") +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+
+The geom\_point() function can take a color argument directly, and R knows what color "purple" is. This is not part of the aesthetic mapping that defines the basic structure of the graphic. From the point of view of the grammar or logic of the graph, the fact that the points are colored purple has no significance. The color purple is not representing or mapping a variable or feature of the data in the relevant way.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp)) 
+p + geom_point(alpha = 0.3) +
+    geom_smooth(color = "orange", se = FALSE, size = 8, method = "lm") +
+    scale_x_log10()
+```
+
+The various geom\_ functions can take many other arguments that will affect how the plot looks, but that do not involve mapping variables to aesthetic elements. Thus, those arguments will never go inside the aes() function. Some of the things we will want to set, like color or size, have the same name as mappable elements. Others, like the method or se arguments in geom\_smooth() affect other aspects of the plot. In the code for Figure 3.12, the geom\_smooth() call sets the line color to orange and sets its size (i.e., thickness) to 8, an unreasonably large value. We also turn off the se option by switching it from its default value of TRUE to FALSE. The result is that the standard error ribbon is not shown.
+
+MeanwhileIt's also possible to map a continuous variable directly to the alpha property, much like one might map a continuous variable to a single-color gradient. However, this is generally not an effective way of precisely conveying variation in quantity. in the geom\_smooth() call we set the alpha argument to 0.3. Like color, size, and shape, "alpha" is an aesthetic property that points (and some other plot elements) have, and to which variables can be mapped. It controls how transparent the object will appear when drawn. It's measured on a scale of zero to one. An object with an alpha of zero will be completely transparent. Setting it to zero will make any other mappings the object might have, such as color or size, invisible as well. An object with an alpha of one will be completely opaque. Choosing an intermediate value can be useful when there is a lot of overlapping data to plot, as it makes it easier to see where the bulk of the observations are located.
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y=lifeExp))
+p + geom_point(alpha = 0.3) +
+    geom_smooth(method = "gam") +
+    scale_x_log10(labels = scales::dollar) +
+    labs(x = "GDP Per Capita", y = "Life Expectancy in Years",
+         title = "Economic Growth and Life Expectancy",
+         subtitle = "Data points are country-years",
+         caption = "Source: Gapminder.")
+```
+
+We can now make a reasonably polished plot. We set the alpha of the points to a low value, make nicer x- and y-axis labels, and add a title, subtitle, and caption. As you can see in the code above, in addition to x, y, and any other aesthetic mappings in your plot (such as size, fill, or color), the labs() function can also set the text for title, subtitle, and caption. It controls the main labels of scales. The appearance of things like axis tick marks are the responsibility of various scale\_ functions, such as the scale\_x\_log10() function used here. We will learn more about what can be done with scale\_ functions soon.
+
+Are there any variables in our data that can sensibly be mapped to the color aesthetic? Consider continent. In Figure 3.14 the individual data points have been colored by continent, and a legend with a key to the colors has automatically been added to the plot. In addition, instead of one smoothing line we now have five. There is one for each unique value of the continent variable. This is a consequence of the way aesthetic mappings are inherited. Along with x and y, the color aesthetic mapping is set in the call to ggplot() that we used to creat the p object. Unless told otherwise, all geoms layered on top of the original plot object will inherit that object's mappings. In this case we get both our points and smoothers colored by continent.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp,
+                          color = continent))
+p + geom_point() +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+
+If it is what we want, then we might also consider shading the standard error ribbon of each line to match its dominant color. The color of the standard error ribbon is controlled by the fill aesthetic. Whereas the color aesthetic affects the appearance of lines and points, fill is for the filled areas of bars, polygons and, in this case, the interior of the smoother's standard error ribbon.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp,
+                          color = continent,
+                          fill = continent))
+p + geom_point() +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+
+Making sure that color and fill aesthetics match up consistently in this way improves the overall look of the plot. In order to make it happen we just need to specify that the mappings are to the same variable in each case.
+
+### 3.6 Aesthetics can be mapped per geom
+
+Perhaps five separate smoothers is too many, and we just want one line. But we still would like to have the points color-coded by continent. By default, geoms inherit their mappings from the ggplot() function. We can change this by mapping the aesthetics we want only the geom\_ functions that we want them to apply to. We use the same mapping = aes(...) expression as in the initial call to ggplot(), but now use it in the geom\_ functions as well, specifying only the mappings we want to apply to each one. Mappings specified only in the initial ggplot() function---here, x and y---will carry through to all subsequent geoms.
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+p + geom_point(mapping = aes(color = continent)) +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+```
+
+It's possible to map continuous variables to the color aesthetic, too. For example, we can map the log of each country-year's population (pop) to color. (We can take the log of population right in the aes() statement, using the log() function. R will evaluate this for us quite happily.) When we do this, ggplot produces a gradient scale. It is continuous, but marked at intervals in the legend. Depending on the circumstances, mapping quantities like population to a continuous color gradient may be more or less effective than cutting the variable into categorical bins running, e.g., from low to high. In general it is always worth looking at the data in its continuous form first rather than cutting or binning it into categories.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = gdpPercap,
+                          y = lifeExp))
+p + geom_point(mapping = aes(color = log(pop))) +
+    scale_x_log10()    
+```
+
+Finally, it is worth paying a little more attention to the way that ggplot draws its scales. Because every mapped variable has a scale, we can learn a lot about how a plot has been constructed, and what mappings it contains, by seeing what the legends look like. e.g. looking at the legends of color = cointinents figures above.
+
+In the legend for the first figure, shown here on the left, we see several visual elements. The key for each continent shows a dot, a line, and a shaded background. The key for the second figure, shown on the right, has only a dot for each continent, with no shaded background or line. If you look again at the code for Figures 3.15 and 3.16, you will see that in the first case we mapped the continent variable to both color and fill. We then drew the figure with geom\_point() and fitted a line for each continent with geom\_smooth(). Points have color but the smoother understands both color (for the line itself) and fill (for the shaded standard error ribbon). Each of these elements is represented in the legend: the point color, the line color, and the ribbon fill. In the second figure, we decided to simplify things by having only the points be colored by continent. Then we drew just a single smoother for the whole graph. Thus, in the legend for that figure, the colored line and the shaded box are both absent. We only see a legend for the mapping of color to continent in geom\_point(). Meanwhile on the graph itself the line drawn by geom\_smooth() is set by default to a bright blue, different from anything on the scale, and its shaded error ribbon is set by default to gray. Small details like this are not accidents. They are a direct consequence of ggplot's grammatical way of thinking about the relationship between the data behind the plot and the visual elements that represent it.
+
+### 3.7 Save your work
+
+Now that you have started to make your own plots, you may be wondering how to save them, and perhaps also how to control their size and format. If you are working in an RMarkdown document then the plots you make will be embedded in it, as we have already seen. You can set the default size of plots within your .Rmd document by setting an option in your first code chunk. This one tells R to make 8x5 figures:
+
+knitr::opts\_chunk\$set(fig.width=8, fig.height=5) Because you will be making plots of different sizes and shapes, sometimes you will want to control the size of particular plots, without changing the default. To do this, you can add the same options to any particular chunk inside the curly braces at the beginning. Remember, each chunk opens with three backticks and then a pair of braces containing the language name (for us always r) and an optional label:
+
+```{r example}
+p + geom_point()
+```
+
+You can follow the label with a comma and provide a series of options if needed. They will apply only to that chunk. To make a figure twelve inches wide and nine inches high we say e.g. {r example, fig.width = 12, fig.height = 9} in the braces section.
+
+You will often need to save your figures individually, as they will end up being dropped into slides or published in papers that are not produced using RMarkdown. Saving a figure to a file can be done in several different ways. When working with ggplot, the easiest way is to use the ggsave() function. To save the most recently displayed figure, we provide the name we want to save it under:
+
+ggsave(filename = "my\_figure.png") ThisSeveral other file formats are available as well. See the function's help page for details. will save the figure as a PNG file, a format suitable for displaying on web pages. If you want a PDF instead, change the extension of the file:
+
+ggsave(filename = "my\_figure.pdf") Remember that, for convenience, you do not need to write filename = as long as the name of the file is the first argument you give ggsave(). You can also pass plot objects to ggsave(). For example, we can put our recent plot into an object called p\_out and then tell ggave() that we want to save that object.
+
+```{r}
+p_out <- p + geom_point() +
+    geom_smooth(method = "loess") +
+    scale_x_log10()
+ggsave("my_figure.pdf", plot = p_out)
+```
+
+When saving your work, it is sensible to have a subfolder (or more than one, depending on the project) where you save only figures. You should also take care to name your saved figures in a sensible way. fig\_1.pdf or my\_figure.pdf are not good names. Figure names should be compact but descriptive, and consistent between figures within a project. In addition, although it really shouldn't be the case in this day and age, it is also wise to play it safe and avoid file names containing characters likely to make your code choke in future. These include apostrophes, backticks, spaces, forward and back slashes, and quotes.
+
+The Appendix contains a short discussion of how to organize your files within your project folder. Treat the project folder as the home base of your work for the paper or work you are doing, and put your data and figures in subfolders within the project folder. To begin with, using your file manager, create a folder named "figures" inside your project folder. When saving figures, you can use Kirill Müller's handy here library to make it easier to work with files and subfolders while not having to type in full file paths. Load the library in the setup chunk of your RMarkdown document. When you do, it tells you where "here" is for the current project. You will see a message saying something like this, with your file path and user name instead of mine:
+
+# here() starts at /Users/kjhealy/projects/socviz
+
+You can then use the here() function to make loading and saving your work more straightforward and safer. Assuming a folder named "figures" exists in your project folder, you can do this:
+
+ggsave(here("figures", "lifexp\_vs\_gdp\_gradient.pdf"), plot = p\_out) This saves p\_out as a file called lifeexp\_vs\_gdp\_gradient.pdf in the figures directory here, i.e. in your current project folder.
+
+You can save your figure in a variety of different formats, depending on your needs (and also, to a lesser extent, on your particular computer system). The most important distinction to bear in mind is between vector formats and raster formats. A file with a vector format, like PDF or SVG, is stored as a set of instructions about lines, shapes, colors, and their relationships. The viewing software (such as Adobe Acrobat or Apple's Preview application for PDFs) then interprets those instructions and displays the figure. Representing the figure this way allows it to be easily resized without becoming distorted. The underlying language of the PDF format is Postscript, which is also the language of modern typesetting and printing. This makes a vector-based format like PDF the best choice for submission to journals.
+
+A raster based format, on the other hand, stores images essentially as a grid of pixels of a pre-defined size with information about the location, color, brightness, and so on of each pixel in the grid. This makes for more efficient storage, especially when used in conjunction with compression methods that take advantage of redundancy in images in order to save space. Formats like JPG are compressed raster formats. A PNG file is a raster image format that supports lossless compression. For graphs containing an awful lot of data, PNG files will tend to be much smaller than the corresponding PDF. However, raster formats cannot be easily resized. In particular they cannot be expanded in size without becoming pixelated or grainy. Formats like JPG and PNG are the standard way that images are displayed on the web. The more recent SVG format is vector-based format but also nevertheless supported by many web browsers.
+
+In general you should save your work in several different formats. When you save in different formats and in different sizes you may need to experiment with the scaling of the plot and the size of the fonts in order to get a good result. The scale argument to ggsave() can help you here (you can try out different values, like scale=1.3, scale=5, and so on). You can also use ggave() to explicitly set the height and width of your plot in the units that you choose.
+
+```{r}
+ggsave(here( "lifexp_vs_gdp_gradient.pdf"),
+       plot = p_out, height = 8, width = 10, units = "in")
+
+# ggsave(here("figures", "lifexp_vs_gdp_gradient.pdf"),
+# plot = p_out, height = 8, width = 10, units = "in")
+```
+
+Now that you know how to do that, let's get back to making more graphs.
+
+## 4 Show the right numbers
+
+how to write code that prepares our data to be plotted.
+
+n R and ggplot, errors in code can result in figures that don't look right. We have already seen the result of one of the most common problems, when an aesthetic is mistakenly set to a constant value instead of being mapped to a variable. In this chapter we will discuss some useful features of ggplot that also commonly cause trouble. **They have to do with how to tell ggplot more about the internal structure of your data (grouping), how to break up your data into pieces for a plot (faceting), and how to get ggplot to perform some calculations on or summarize your data before producing the plot (transforming). Some of these tasks are part of ggplot proper, and so we will learn more about how geoms, with the help of their associated stat functions, can act on data before plotting it. As we shall also see, while it is possible to do a lot of transformation directly in ggplot, there can be more convenient ways to approach the same task.**
+
+### 4.2 Grouped data and the "group" aesthetic
+
+Let's begin again with our Gapminder dataset. Imagine we wanted to plot the trajectory of life expectancy over time for each country in the data. We map year to x and lifeExp to y. We take a quick look at the documentation and discover that geom\_line() will draw lines by connecting observations in order of the variable on the x-axis, which seems right. We write our code:
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = year,
+                          y = gdpPercap))
+p + geom_line() 
+```
+
+**Something has gone wrong. What happened? While ggplot will make a pretty good guess as to the structure of the data, it does not know that the yearly observations in the data are grouped by country. We have to tell it. Because we have not, geom\_line() gamely tries to join up all the lines for each particular year in the order they appear in the dataset, as promised. It starts with an observation for 1952 in the first row of the data. It doesn't know this belongs to Afghanistan. Instead of going to Afghanistan 1953, it finds there are a series of 1952 observations, so it joins all of those up first, alphabetically by country, all the way down to the 1952 observation that belongs to Zimbabwe. Then it moves to the first observation in the next year, 1957.This would have worked if there were only one country in the dataset.**
+
+The result is meaningless when plotted. Bizarre-looking output in ggplot is common enough, because everyone works out their plots one bit at a time, and making mistakes is just a feature of puzzling out how you want the plot to look. When ggplot successfully makes a plot but the result looks insane, the reason is almost always that something has gone wrong in the mapping between the data and aesthetics for the geom being used. This is so common there's even a Twitter account devoted to the "Accidental aRt" that results. So don't despair!
+
+In this case, we can use the group aesthetic to tell ggplot explicitly about this country-level structure.
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = year,
+                          y = gdpPercap))
+p + geom_line(mapping = aes(group = country))
+```
+
+The plot here is still fairly rough, but it is showing the data properly, with each line representing the trajectory of a country over time. The gigantic outlier is Kuwait, in case you are interested.
+
+**The group aesthetic is usually only needed when the grouping information you need to tell ggplot about is not built-in to the variables being mapped. For example, when we were plotting the points by continent, mapping color to continent was enough to get the right answer, because continent is already a categorical variable, so the grouping is clear. When mapping the x to year, however, there is no information in the year variable itself to let ggplot know that it is grouped by country for the purposes of drawing lines with it. So we need to say that explicitly.**
+
+## 4.3 Facet to make small multiples
+
+The plot we just made has a lot of lines on it. While the overall trend is more or less clear, it looks a little messy. One option is to facet the data by some third variable, making a "small multiple" plot. This is a very powerful technique that allows a lot of information to be presented compactly, and in a consistently comparable way. A separate panel is drawn for each value of the faceting variable. Facets are not a geom, but rather a way of organizing a series of geoms. In this case we have the continent variable available to us. We will use facet\_wrap() to split our plot by continent.
+
+The facet\_wrap() function can take a series of arguments, but the most important is the first one, which is specified using R's "formula" syntax, which uses the tilde character, \~. Facets are usually a one-sided formula. Most of the time you will just want a single variable on the right side of the formula. But faceting is powerful enough to accommodate what are in effect the graphical equivalent of multi-way contingency tables, if your data is complex enough to require that. For our first example, we will just use a single term in our formula, which is the variable we want the data broken up by: facet\_wrap(\~ continent).
+
+```{r}
+p <- ggplot(data = gapminder,
+            mapping = aes(x = year,
+                          y = gdpPercap))
+p + geom_line(aes(group = country)) + facet_wrap(~ continent)
+```
+
+We can also use the ncol argument to facet\_wrap() to control the number of columns used to lay out the facets.
+
+If you are unsure of what each piece of code does, take advantage of ggplot's additive character. Working backwards from the bottom up, remove each + some\_function(...) statement one at a time to see how the plot changes.
+
+```{r}
+p <- ggplot(data = gapminder, mapping = aes(x = year, y = gdpPercap))
+p + geom_line(color="gray70", aes(group = country)) +
+    geom_smooth(size = 1.1, method = "loess", se = FALSE) +
+    scale_y_log10(labels=scales::dollar) +
+    facet_wrap(~ continent, ncol = 5) +
+    labs(x = "Year",
+         y = "GDP per capita",
+         title = "GDP per capita on Five Continents")
+
+```
+
+We could also have faceted by country, which would have made the group mapping superfluous. But that would make almost a hundred and fifty panels.
+
+This plot brings together an aesthetic mapping of x and y variables, a grouping aesthetic (country), two geoms (a lineplot and a smoother), a log-transformed y-axis with appropriate tick labels, a faceting variable (continent), and finally axis labels and a title.
+
+The facet\_wrap() function is best used when you want a series of small multiples based on a single categorical variable. Your panels will be laid out in order and then wrapped into a grid. If you wish you can specify the number or rows or the number of columns in the resulting layout. Facets can be more complex than this. For instance, you might want to cross-classify some data by two categorical variables. In that case you should try facet\_grid() instead. This function will lay out your plot in a true two-dimensional arrangement, instead of a series of panels wrapped into a grid.
+
+To see the difference, let's introduce gss\_sm, a new dataset that we will use in the next few sections, as well as later on in the book. It is a small subset of the questions from the 2016 General Social Survey, or GSS. The GSS is a long-running survey of American adults that asks about a range of topics of interest to social scientists.To begin with, we will use the GSS data in a slightly naive way. In particular we will not consider sample weights when making the figures in this chapter. In Chapter 6 we will learn how to calculate frequencies and other statistics from data with a complex or weighted survey design. The gapminder data consists mostly of continuous variables measured within countries by year. Measures like GDP per capita can take any value across a large range and they vary smoothly. The only categorical grouping variable is continent. It is an unordered categorical variable. Each country belongs to one continent, but the continents themselves have no natural ordering.
+
+```{r}
+library(socviz)
+gss_sm
+```
+
+```{r}
+glimpse(gss_sm)
+```
+
+We will make a smoothed scatterplot of the relationship between the age of the respondent and the number of children they have. In gss\_sm the childs variable is a numeric count of the respondent's children. (There is also a variable named kids that is the same measure, but its class is an ordered factor rather than a number.) We will then facet this relationship by sex and race of the respondent. We use R's formula notation in the facet\_grid function to facet sex and race. This time, because we are cross-classifying our results, the formula is two-sided: facet\_grid(sex \~ race).
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = age, y = childs))
+p + geom_point(alpha = 0.2) +
+    geom_smooth() +
+    facet_grid(sex ~ race)
+```
+
+Multi-panel layouts of this kind are especially effective when used to summarize continuous variation (as in a scatterplot) across two or more categorical variables, with the categories (and hence the panels) ordered in some sensible way. We are not limited to two-way comparison. Further categorical variables can be added to the formula, too, (e.g. sex \~ race + degree) for more complex multi-way plots. However, the multiple dimensions of plots like this will become very complicated very quickly if the variables have more than a few categories each.
+
+### 4.4 Geoms can transform data
+
+We have already seen several examples where geom\_smooth() was included as a way to add a trend line to the figure. Sometimes we plotted a LOESS line, sometimes a straight line from an OLS regression, and sometimes the result of a Generalized Additive Model. We did not have to have any strong idea of the differences between these methods. Neither did we have to write any code to specify the underlying models, beyond telling the method argument in geom\_smooth() which one we wanted to use. The geom\_smooth() function did the rest.
+
+Thus, some geoms plot our data directly on the figure, as is the case with geom\_point(), which takes variables designated as x and y and plots the points on a grid. But other geoms clearly do more work on the data before it gets plotted.Try p + stat\_smooth(), for example. **Every geom\_ function has an associated stat\_ function that it uses by default. The reverse is also the case: every stat\_ function has an associated geom\_ function that it will plot by default if you ask it to.** This is not particularly important to know by itself, but as we will see in the next section, we sometimes want to calculate a different statistic for the geom from the default.
+
+Sometimes the calculations being done by the stat\_ functions that work together with the geom\_ functions might not be immediately obvious. For example, consider this figure produced by a new geom, geom\_bar().
+
+```{r}
+
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion))
+p + geom_bar()
+```
+
+Here we specified just one mapping, aes(x = bigregion). The bar chart produced gives us a count of the number of (individual) observations in the data set by region of the United States. This seems sensible. But there is a y-axis variable here, count, that is not in the data. It has been calculated for us. Behind the scenes, geom\_bar called the default stat\_ function associated with it, stat\_count(). This function computes two new variables, count, and prop (short for proportion). The count statistic is the one geom\_bar() uses by default.
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion))
+p + geom_bar(mapping = aes(y = ..prop..))
+```
+
+If we want a chart of relative frequencies rather than counts, we will need to get the prop statistic instead. When ggplot calculates the count or the proportion, it returns temporary variables that we can use as mappings in our plots. The relevant statistic is called ..prop.. rather than prop. To make sure these temporary variables won't be confused with others we are working with, their names begin and end with two periods. (This is because we might already have a variable called count or prop in our dataset.) So our calls to it from the aes() function will generically look like this: <mapping> = \<..statistic..\>. In this case, we want y to use the calculated proportion, so we say aes(y = ..prop..).
+
+The resulting plot is still not right. We no longer have a count on the y-axis, but the proportions of the bars all have a value of 1, so all the bars are the same height. We want them to sum to 1, so that we get the number of observations per continent as a proportion of the total number of observations. This is a grouping issue again. In a sense, it's the reverse of the earlier grouping problem we faced when we needed to tell ggplot that our yearly data was grouped by country. In this case, we need to tell ggplot to ignore the x-categories when calculating denominator of the proportion, and use the total number observations instead. To do so we specify group = 1 inside the aes() call. The value of 1 is just a kind of "dummy group" that tells ggplot to use the whole dataset when establishing the denominator for its prop calculations.
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion))
+p + geom_bar(mapping = aes(y = ..prop.., group = 1)) 
+```
+
+Let's look at another question from the survey. The gss\_sm data contains a religion variable derived from a question asking "What is your religious preference? Is it Protestant, Catholic, Jewish, some other religion, or no religion?"
+
+```{r}
+table(gss_sm$religion)
+```
+
+or the tidyverse/myway
+
+```{r}
+gss_sm %>% 
+  dplyr::count(religion, sort = TRUE, name = "total_number")
+
+
+      
+```
+
+To Recall that the \$ character is one way of accessing individual columns within a data frame or tibble. graph this, we want a bar chart with religion on the x axis (as a categorical variable), and with the bars in the chart also colored by religion. If the gray bars look boring and we want to fill them with color instead, we can map the religion variable to fill in addition to mapping it to x. Remember, fill is for painting the insides of shapes. If we map religion to color, only the border lines of the bars will be assigned colors, and the insides will remain gray.
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = religion, color = religion))
+p + geom_bar()
+
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = religion, fill = religion))
+p + geom_bar() + guides(fill = FALSE) 
+```
+
+Figure 4.9: GSS Religious Preference mapped to color (left) and both color and fill (right).
+
+By doing this, we have mapped two aesthetics to the same variable. Both x and fill are mapped to religion. There is nothing wrong with this. However, these are still two separate mappings, and so they get two separate scales. The default is to show a legend for the color variable. This legend is redundant, because the categories of religion are already separated out on the x-axis. In its simplest use, *the guides() function controls whether guiding information about any particular mapping appears or not. If we set guides(fill = FALSE), the legend is removed, in effect saying that the viewer of the figure does not need to be shown any guiding information about this mapping. Setting the guide for some mapping to FALSE only has an effect if there is a legend to turn off to begin with. Trying x = FALSE or y = FALSE will have no effect, as these mappings have no additional guides or legends separate from their scales.* *It is possible to turn the x and y scales off altogether, but this is done though a different function, one from the scale* family.
+
+### 4.5 Frequency plots the slightly awkward way
+
+**A more appropriate use of the fill aesthetic with geom\_bar() is to cross-classify two categorical variables. This is the graphical equivalent of a frequency table of counts or proportions.** Using the GSS data, for instance, we might want to examine the distribution of religious preferences within different regions of the United States. In the next few paragraphs we will see how to do this just using ggplot. However, as we shall also discover, it is often not the most transparent way to make frequency tables of this sort. The next chapter introduces a simpler and less error-prone approach where we calculate the table first before passing the results along to ggplot to graph. As you work through this section, bear in mind that if you find things slightly awkward or confusing it is because that's exactly what they are.
+
+**Let's say we want to look at religious preference by census region. That is, we want the religion variable broken down proportionally within bigregion. When we cross-classify categories in bar charts, there are several ways to display the results. With geom\_bar() the output is controlled by the position argument.** Let's begin by mapping fill to religion.
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion, fill = religion))
+p + geom_bar()
+```
+
+**The default output of geom\_bar() is a stacked bar chart, with counts on the y-axis (and hence counts within the stacked segments of the bars also).** **Region of the country is on the x-axis, and counts of religious preference are stacked within the bars. As we saw in Chapter 1, it is somewhat difficult for readers of the chart to compare lengths an areas on an unaligned scale. So while the relative position of the bottom categories are quite clear (thanks to them all being aligned on the x-axis), the relative positions of say, the "Catholic" category is harder to assess. An alternative choice is to set the position argument to "fill". (This is different from the fill aesthetic.)**
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion, fill = religion))
+p + geom_bar(position = "fill")
+```
+
+**Now the bars are all the same height, which makes it easier to compare proportions across groups. But we lose the ability to see the relative size of each cut with respect to the overall total.** What if we wanted to show the proportion or percentage of religions within regions of the country, like in Figure 4.11, but instead of stacking the bars we wanted separate bars instead? As a first attempt, we can use position="dodge" to make the bars within each region of the country appear side by side. However, if we do it this way (try it), we will find that ggplot places the bars side-by-side as intended, but changes the y-axis back to a count of cases within each category rather than showing us a proportion. We saw in Figure 4.8 that to display a proportion we needed to map y = ..prop.., so the correct statistic would be calculated. Let's see if that works.
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion, fill = religion))
+p + geom_bar(position = "dodge",
+             mapping = aes(y = ..prop..))
+```
+
+The result is certainly colorful, but not what we wanted. Just as in Figure 4.7, there seems to be an issue with the grouping. When we just wanted the overall proportions for one variable, we mapped group = 1 to tell ggplot to calculate the proportions with respect to the overall N. In this case our grouping variable is religion, so we might try mapping that to the group aesthetic.
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = bigregion, fill = religion))
+p + geom_bar(position = "dodge",
+             mapping = aes(y = ..prop.., group = religion))
+```
+
+**This gives us a bar chart where the values of religion are broken down across regions, with a proportion showing on the y-axis. If you inspect the bars in Figure 4.13, you will see that they do not sum to one within each region. Instead, the bars for any particular religion sum to one across regions.**
+
+**This lets us see that nearly half of those who said they were Protestant live in the South, for example. Meanwhile, just over ten percent of those saying they were Protestant live in the Northeast. Similarly, it shows that over half of those saying they were Jewish live in the Northeast, compared to about a quarter who live in the South.**
+
+We are still not quite where we originally wanted to be. Our goal was to take the stacked bar chart in Figure 4.10 but have the proportions shown side-by-side instead of on top of one another.
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = aes(x = religion))
+p + geom_bar(position = "dodge",
+             mapping = aes(y = ..prop.., group = bigregion)) +
+    facet_wrap(~ bigregion, ncol = 1)
+```
+
+**It turns out that the easiest thing to do is to stop trying to force geom\_bar() to do all the work in a single step. Instead, we can ask ggplot to give us a proportional bar chart of religious affiliation, and then facet that by region. The proportions are calculated within each panel, which is the breakdown we wanted. This has the added advantage of not producing too many bars within each category.**
+
+We could polish this plot further, but for the moment we will stop here. When constructing frequency plots directly in ggplot, it is a little too easy to get stuck in a cycle of not quite getting the marginal comparison that you want, and more or less randomly poking at the mappings to try to stumble on the the right breakdown. In the next Chapter, we will learn how to use the tidyverse's dplyr library to produce the tables we want before we try to plot them. This is a more reliable approach, and easier to check for errors. It will also give us tools that can be used for many more tasks than producing summaries.
+
+### 4.6 Histograms and density plots
+
+Different geoms transform data in different ways, but ggplot's vocabulary for them is consistent. We can see similar transformations at work when summarizing a continuous variable using a histogram, for example. **A histogram is a way of summarizing a continuous variable by chopping it up into segments or "bins" and counting how many observations are found within each bin. In a bar chart, the categories are given to us going in (e.g., regions of the country, or religious affiliation). With a histogram, we have to decide how finely to bin the data.**
+
+For example, ggplot comes with a dataset, midwest, containing information on counties in several midwestern states of the USA. Counties vary in size, so we can make a histogram showing the distribution of their geographical areas. Area is measured in square miles. Because we are summarizing a continuous variable using a series of bars, we need to divide the observations into groups, or bins, and count how many are in each one. By default, the geom\_histogram() function will choose a bin size for us based on a rule of thumb.
+
+```{r}
+p <- ggplot(data = midwest,
+            mapping = aes(x = area))
+p + geom_histogram()
+## `stat_bin()` using `bins = 30`. Pick better value with
+## `binwidth`.
+p <- ggplot(data = midwest,
+            mapping = aes(x = area))
+p + geom_histogram(bins = 10)
+```
+
+As with the bar charts, a newly-calculated variable, count, appears on the x-axis. The notification from R tells us that behind the scenes the stat\_bin() function picked 30 bins, but we might want to try something else. When drawing histograms it is worth experimenting with bins and also optionally the origin of the x-axis. Each, and especially bins, will make a big difference to how the resulting figure looks.
+
+While histograms summarize single variables, it's also possible to use several at once to compare distributions. We can facet histograms by some variable of interest, or as here we can compare them in the same plot using the fill mapping.
+
+```{r}
+oh_wi <- c("OH", "WI")
+
+p <- ggplot(data = subset(midwest, subset = state %in% oh_wi),
+            mapping = aes(x = percollege, fill = state))
+p + geom_histogram(alpha = 0.4, bins = 20)
+```
+
+**We subset the data here to pick out just two states. To do this we create a character vector with just two elements, "OH" and "WI". Then we use the subset() function to take our data and filter it so that we only select rows whose state name is in this vector. The %in% operator is a convenient way to filter on more than one term in a variable when using subset().**
+
+**When working with a continuous variable, an alternative to binning the data and making a histogram is to calculate a kernel density estimate of the underlying distribution. The geom\_density() function will do this for us.**
+
+```{r}
+p <- ggplot(data = midwest,
+            mapping = aes(x = area))
+p + geom_density()
+```
+
+We can use color (for the lines) and fill (for the body of the density curve) here, too. These figures often look quite nice. But when there are several filled areas on the plot, as in this case, the overlap can become hard to read. If you want to make the baselines of the density curves go away, you can use geom\_line(stat = "density") instead. This also removes the possibility of using the fill aesthetic. But this may be an improvement in some cases. Try it with the plot of state areas and see how they compare.
+
+```{r}
+p <- ggplot(data = midwest,
+            mapping = aes(x = area, fill = state, color = state))
+p + geom_density(alpha = 0.3)
+```
+
+Just like geom\_bar(), the count-based defaults computed by the stat\_ functions used by geom\_histogram() and geom\_density() will return proportional measures if we ask them. For geom\_density(), the stat\_density() function can return its default ..density.. statistic, or ..scaled.., which will give a proportional density estimate. It can also return a statistic called ..count.., which is the density times the number of points. This can be used in stacked density plots.
+
+```{r}
+p <- ggplot(data = subset(midwest, subset = state %in% oh_wi),
+            mapping = aes(x = area, fill = state, color = state))
+p + geom_density(alpha = 0.3, mapping = (aes(y = ..scaled..)))
+```
+
+Figure 4.19: Scaled densities.
+
+### 4.7 Avoid transformations when necessary
+
+As we have seen from the beginning, ggplot normally makes its charts starting from a full dataset. When we call geom\_bar() it does its calculations on the fly using stat\_count() behind the scenes to produce the counts or proportions it displays. In the previous section, we looked at a case where we wanted to group and aggregate our data ourselves before handing it off to ggplot. But often, our data is in effect already a summary table. This can happen when we have computed a table of marginal frequencies or percentages from our original data already. Plotting results from statistical models also puts us in this position, as we will see later. Or it may be that we just have a finished table of data (from the Census, say, or an official report) that we want to make into a graph. For example, perhaps we do not have the individual-level data on who survived the Titanic disaster, but we do have a small table of counts of survivors by sex:
+
+```{r}
+titanic
+```
+
+**Because we are working directly with percentage values in a summary table, we no longer have any need for ggplot to count up values for us or perform any other calculations. That is, we do not need the services of any stat\_ functions that geom\_bar() would normally call. We can tell geom\_bar() not to do any work on the variable before plotting it. To do this we say stat = 'identity' in the geom\_bar() call. We'll also move the legend to the top of the chart.**
+
+```{r}
+p <- ggplot(data = titanic,
+            mapping = aes(x = fate, y = percent, fill = sex))
+p + geom_bar(position = "dodge", stat = "identity") + theme(legend.position = "top")
+
+```
+
+**For convenience ggplot also provides a related geom, geom\_col(), which has exactly the same effect but assumes that stat = "identity". We will use this form in future when we don't need any calculations done on the plot.**
+
+**The position argument in geom\_bar() and geom\_col() can also take the value of "identity". Just as stat = "identity" means "don't do any summary calculations", position = "identity" means "just plot the values as given". This allows us to do things like, for example, plot a flow of positive and negative values in a bar chart. This sort of graph is an alternative to a line plot and is often seen in public policy settings where changes relative to some threshold level or baseline are of interest. For example, the oecd\_sum table in socviz contains information on average life expectancy at birth within the United States, and across other OECD countries.**
+
+```{r}
+oecd_sum
+```
+
+The other column is the average life expectancy in a given year for OECD countries, excluding the United States. The usa column is the US life expectancy, diff is the difference between the two values, and hi\_lo indicates whether the US value for that year was above or below the OECD average. We will plot the difference over time, and use the hi\_lo variable to color the columns in the chart.
+
+```{r}
+p <- ggplot(data = oecd_sum,
+            mapping = aes(x = year, y = diff, fill = hi_lo))
+p + geom_col() + guides(fill = FALSE) +
+  labs(x = NULL, y = "Difference in Years",
+       title = "The US Life Expectancy Gap",
+       subtitle = "Difference between US and OECD
+                   average life expectancies, 1960-2015",
+       caption = "Data: OECD. After a chart by Christopher Ingraham,
+                  Washington Post, December 27th 2017.")
+```
+
+**As with the titanic plot, the default action of geom\_col() is to set both stat and position to "identity". To get the same effect with geom\_bar() we would need to say geom\_bar(position = "identity"). As before, the guides(fill=FALSE) instruction at the end tells ggplot to drop the unnecessary legend that would otherwise be automatically generated to accompany the fill mapping.**
+
+At this point, we have a pretty good sense of the core steps we must take to visualize our data. In fact, thanks to ggplot's default settings, we now have the ability to make good-looking and informative plots. Starting with a tidy dataset, we know how to map variables to aesthetics, to choose from a variety of geoms, and make some adjustments to the scales of the plot. We also know more about selecting the right sort of computed statistic to show on the graph, if that's what's needed, and how to facet our core plot by one or more variables. We know how to set descriptive labels for axes, and write a title, subtitle, and caption. Now we're in a position to put these skills to work in a more fluent way.
+
+### 4.8 Where to go next
+
+-   Revisit the gapminder plots at the beginning of the chapter and experiment with different ways to facet the data. Try plotting population and per capita GDP while faceting on year, or even on country. In the latter case you will get a lot of panels, and plotting them straight to the screen may take a long time. Instead, assign the plot to an object and save it as a PDF file to your figures/ folder. Experiment with the height and width of the figure.
+-   Investigate the difference between a formula written as facet\_grid(sex \~ race) versus one written as facet\_grid(\~ sex + race).
+-   Experiment to see what happens when you use facet\_wrap() with more complex forumulas like facet\_wrap(\~ sex + race) instead of facet\_grid. Like facet\_grid(), the facet\_wrap() function can facet on two or more variables at once. But it will do it by laying the results out in a wrapped one-dimensional table instead of a fully cross-classified grid.
+-   Frequency polygons are closely related to histograms. Instead of displaying the count of observations using bars, they display it with a series of connected lines instead. You can try the various geom\_histogram() calls in this chapter using geom\_freqpoly() instead.
+-   A histogram bins observations for one variable and shows a bars with the count in each bin. We can do this for two variables at once, too. The geom\_bin2d() function takes two mappings, x and y. It divides your plot into a grid and colors the bins by the count of observations in them. Try using it on the gapminder data to plot life expectancy versus per capita GDP. Like a histogram, you can vary the number or width of the bins for both x or y. Instead of saying bins = 30 or binwidth = 1, provide a number for both x and y with, for example, bins = c(20, 50). If you specify bindwith instead, you will need to pick values that are on the same scale as the variable you are mapping.
+-   Density estimates can also be drawn in two dimensions. The geom\_density\_2d() function draws contour lines estimating the joint distribution of two variables. Try it with the midwest data, for example, plotting percent below the poverty line (percbelowpoverty) against percent college-educated (percollege). Try it with and without a geom\_point() layer.
+
+### 5 Graph tables, add labels, make notes
+
+This Chapter builds on the foundation we have laid down. Things will get a little more sophisticated in three ways. First, we will learn about how to transform data before we send it to ggplot to be turned into a figure. As we saw in Chapter 4, ggplot's geoms will often summarize data for us. While convenient, this can sometimes be awkward or even a little opaque. Often, it's better to get things into the right shape before we send anything to ggplot. This is a job for another tidyverse component, the dplyr library. We will learn how to use some of its "action verbs" to select, group, summarize and transform our data.
+
+Second, we will expand the number of geoms we know about, and learn more about how to choose between them. The more we learn about ggplot's geoms, the easier it will be to pick the right one given the data we have and the visualization we want. As we learn about new geoms, we will also get a little more adventurous and depart from some of ggplot's default arguments and settings. We will learn how to reorder the variables displayed in our figures, and how to subset the data we use before we display it.
+
+Third, this process of gradual customization will give us the opportunity to learn a little more about the scale, guide, and theme functions that we have mostly taken for granted until now. These will give us even more control over the content and appearance of our graphs. Together, these techniques can be used to make plots much more legible to readers. They allow us to present our data in a more structured and easily comprehensible way, and to pick out the elements of it that are of particular interest. We will begin to use these techniques to layer geoms on top of one another, a technique that will allow us to produce very sophisticated graphs in a systematic, comprehensible way.
+
+Our basic approach will not change. No matter how complex our plots get, or how many individual steps we take to layer and tweak their features, underneath we will always be doing the same thing. We want a table of tidy data, a mapping of variables to aesthetic elements, and a particular type of graph. If you can keep sight of this, it will make it easier to confidently approach the job of getting any particular graph to look just right.
+
+### 5.1 Use pipes to summarize data
+
+In Chapter 4 we began making plots of the distributions and relative frequencies of variables. Cross-classifying one measure by another is one of the basic descriptive tasks in data analysis. Tables 5.1 and 5.2 show two common ways of summarizing our GSS data on the distribution of religious affiliation and region. Table 5.1 shows the column marginals, where the numbers sum to a hundred by column and show, e.g., the distribution of Protestants across regions. Meanwhile in Table 5.2 the numbers sum to a hundred across the rows, showing for example the distribution of religious affiliations within any particular region.
+
+We saw in Chapter 4 that geom\_bar() can plot both counts and relative frequencies depending on what we asked of it. In practice, though, letting the geoms (and their stat\_ functions) do the work can sometimes get a little confusing. **It is too easy to lose track of whether one has calculated row margins, column margins, or overall relative frequencies.** The code to do the calculations on the fly ends up stuffed into the mapping function and can become hard to read. A better strategy is to calculate the frequency table you want first, and then plot that table. This has the benefit of allowing you do to some quick sanity checks on your tables, to make sure you haven't made any errors.
+
+Table 5.1: Column marginals. (Numbers in columns sum to 100.) Table 5.2: Row marginals. (Numbers in rows sum to 100.)
+
+Let's say we want a plot of the row-marginals for religion within region. We will take the opportunity to do a little bit of data-munging in order to get from our underlying table of GSS data to the summary tabulation that we want to plot. To do this we will use the tools provided by dplyr, a component of the tidyverse library that provides functions for manipulating and reshaping tables of data on the fly. We start from our individual-level gss\_sm data frame with its bigregion and religion variables. Our goal is a summary table with percentages of religious preferences grouped within region.
+
+As shown schematically in Figure 5.1, we will start with our individual-level table of about 2,500 GSS respondents. Then we want to summarize them into a new table that shows a count of each religious preference, grouped by region. Finally we will turn these within-region counts into percentages, where the denominator is the total number of respondents within each region. The dplyr library provides a few tools to make this easy and clear to read. We will use a special operator, %\>%, to do our work. This is the pipe operator. It plays the role of the yellow triangle in Figure 5.1, in that it helps us perform the actions that get us from one table to the next.
+
+We have being building our plots in an additive fashion, starting with a ggplot object and layering on new elements. By analogy, think of the %\>% operator as allowing us to start with a data frame and perform a sequence or pipeline of operations to turn it into another, usually smaller and more aggregated table. Data goes in one side of the pipe, actions are performed via functions, and results come out the other. A pipeline is typically a series of operations that do one or more of four things:
+
+-   Group the data into the nested structure we want for our summary, such as "Religion by Region" or "Authors by Publications by Year".
+
+group\_by()
+
+-   Filter or select pieces of the data by row, column, or both. This gets us the piece of the table we want to work on.
+
+filter() rows; select() columns
+
+-   Mutate the data by creating new variables at the current level of grouping. This adds new columns to the table without aggregating it. mutate()
+
+-   Summarize or aggregate the grouped data. This creates new variables at a higher level of grouping. For example we might calculate means with mean() or counts with n(). This results in a smaller, summary table, which we might do more things on if we want.
+
+summarize()
+
+```{r}
+rel_by_region <- gss_sm %>% 
+  group_by(bigregion, religion) %>% 
+  summarize(N = n()) %>% 
+  mutate(freq = N/sum(N),
+         pct= round((freq*100),0))
+```
+
+What are these lines doing? First, we are creating an object as usual, with the familiar assignment operator, \<-. Next, at the steps to the right. Read the objects and functions from left to right, with the pipe operator "%\>%" connecting them together meaning "and then ...". Objects on the left hand side "pass through" the pipe, and whatever is specified on the right of the pipe gets done to that object. The resulting object then passes through to the right again, and so on down to the end of the pipeline.
+
+Reading from the left, the code says this:
+
+-   Create a new object, rel\_by\_region. It will get the result of the following sequence of actions: Start with the gss\_sm data, and then
+
+rel\_by\_region \<- gss\_sm %\>%
+
+-   Group the rows by bigregion and, within that, by religion.
+
+group\_by(bigregion, religion) %\>%
+
+-   Summarize this table to create a new, much smaller table, with three columns: bigregion, religion, and a new summary variable, N, that is a count of the number of observations within each religious group for each region.
+
+summarize(N = n()) %\>%
+
+-   With this new table, use the N variable to calculate two new columns: the relative proportion (freq) and percentage (pct) for each religious category, still grouped by region. Round the results to the nearest percentage point.
+
+mutate(freq = N / sum(N), pct = round((freq\*100), 0))
+
+In this way of doing things, objects passed along the pipeline and the functions acting on them carry some assumptions about their context. For one thing, you don't have to keep specifying the name of the underlying data frame object you are working from. Everything is implicitly carried forward from gss\_sm. Within the pipeline, the transient or implicit objects created from your summaries and other transformations are carried through, too.
+
+Second, the group\_by() function sets up how the grouped or nested data will be processed within the summarize() step. Any function used to create a new variable within summarize(), such as mean() or sd() or n(), will be applied to the innermost grouping level first. Grouping levels are named from left to right within group\_by() from outermost to innermost. So the function call summarize(N = n()) counts up the number of observations for each value of religion within bigregion and puts them in a new variable named N. As dplyr's functions see things, summarizing actions "peel off" one grouping level at a time, so that the resulting summaries are at the next level up. In this case, we start with individual-level observations and group them by religion within region. The summarize() operation aggregates the individual observations to counts of the number of people affiliated with each religion, for each region.
+
+Third, the mutate() step takes the N variable and uses it to create freq, the relative frequency for each subgroup within region, and finally pct, the relative frequency turned into a rounded percentage. *These mutate() operations add or remove columns from tables, but do not change the grouping level.*
+
+Inside both mutate() and summarize(), we are able to create new variables in a way that we have not seen before. Usually, when we see something like name = value inside a function, the name is a general, named argument and the function is expecting information from us about the specific value it should take. Normally if we give a function a named argument it doesn't know about (aes(chuckles = year)) it will ignore it, complain, or break. With summarize() and mutate(), however, we can invent named arguments. We are still assigning specific values to N, freq, and pct, but we pick the names, too. They are the names that the newly-created variables in the summary table will have. The summarize() and mutate() functions do not need to know what they will be in advance.
+
+As in the case of aes(x = gdpPercap, y = lifeExp), for example.
+
+Finally, when we use mutate() to create the freq variable, not only can we make up that name within the function, mutate() is also clever enough to let us use that name right away, on the next line of the same function call, when we create the pct variable. This means we do not have to repeatedly write separate mutate() calls for every new variable we want to create.
+
+Our pipeline takes the gss\_sm data frame, which has 2867 rows and 32 columns, and transforms it into rel\_by\_region, a summary table with 24 rows and 5 columns that looks like this, in part:
+
+```{r}
+rel_by_region
+```
+
+The variables specified in group\_by() are retained in the new summary table; the variables created with summarize() and mutate() are added, and all the other variables in the original dataset are dropped.
+
+*We said before that, when trying to grasp what each additive step in a ggplot() sequence does, it can be helpful to work backwards, removing one piece at a time to see what the plot looks like when that step is not included. In the same way, when looking at pipelined code it can be helpful to start from the end of the line, and then remove one "%\>%" step at a time to see what the resulting intermediate object looks like. For instance, what if we remove the mutate() step from the code above? What does rel\_by\_region look like then? What if we remove the summarize() step? How big is the table returned at each step? What level of grouping is it at? What variables have been added or removed?*
+
+Plots that do not require sequential aggregation and transformation of the data before they are displayed are usually easy to write directly in ggplot, as the details of the layout are handled by a combination of mapping variables and layering geoms. One-step filtering or aggregation of the data (such as calculating a proportion, or a specific subset of observations) is also straightforward. But when the result we want to display is several steps removed from the data, and in particular when we want to group or aggregate a table and do some more calculations on the result before drawing anything, then it can make sense to use dplyr's tools to produce these summary tables first. This is true even if would also be possible to do it within a ggplot() call. In addition to making our code easier to read, it lets us more easily perform sanity checks on our results, so that we are sure we have grouped and summarized things in the right order. For instance, if we have done things properly with rel\_by\_region, the pct values associated with religion should sum to 100 within each region, perhaps with a bit of rounding error. We can quickly check this using a very short pipeline, too:
+
+```{r}
+rel_by_region %>% group_by(bigregion) %>% 
+  summarize(total = sum(pct))
+```
+
+This looks good. As before, now that we are working directly with percentage values in a summary table, we can use geom\_col() instead of geom\_bar().
+
+```{r}
+p <- ggplot(rel_by_region, aes(x = bigregion, y = pct, fill = religion))
+p + geom_col(position = "dodge2") +
+    labs(x = "Region",y = "Percent", fill = "Religion") +
+    theme(legend.position = "top")
+```
+
+Figure 5.2: Religious preferences by Region.
+
+**We use a different position argument here, dodge2 instead of dodge. This puts the bars side by side. When dealing with pre-computed values in geom\_col(), the default position is to make a proportionally stacked column chart. If you use dodge they will be stacked within columns but the result will read incorrectly. Using dodge2 puts the sub-categories (religious affiliations) side-by-side within groups (regions).**
+
+The values in this bar chart are the percentage equivalents to the stacked counts in Figure 4.10. Religious affiliations sum to 100 percent within region. The trouble is, although we now know how to cleanly produce frequency tables, this is still a bad figure. It is too crowded, with too many bars side-by-side. We can do better.
+
+**As a rule, dodged charts can be more cleanly expressed as faceted plots. This removes the need for a legend, and thus makes the chart simpler to read. We also introduce a new function. If we map religion to the x-axis, the labels will overlap and become illegible. It's possible to manually adjust the tick mark labels so that they are printed at an angle, but that isn't so easy to read, either. It makes more sense to put the religions on the y-axis and the percent scores on the x-axis. Because of the way geom\_bar() works internally, simply swapping the x and y mapping will not work. (Try it and see what happens.) What we do instead is to transform the coordinate system that the results are plotted in, so that the x and y axes are flipped. We do this with coord\_flip().**
+
+```{r}
+p <- ggplot(rel_by_region, aes(x = religion, y = pct, fill = religion))
+p + geom_col(position = "dodge2") +
+    labs(x = NULL, y = "Percent", fill = "Religion") +
+    guides(fill = FALSE) + 
+    coord_flip() + 
+    facet_grid(~ bigregion)
+```
+
+Figure 5.3: Religious preferences by Region, faceted version.
+
+Actually it works:) just flip the x n y axis aestic and we no longer need the coord\_flip layer, and it also works without that position = dodge2 argument inside geom\_col (may be due to new ggplot2 release?)
+
+```{r}
+p <- ggplot(rel_by_region, aes(y = religion, x = pct, fill = religion))
+p + geom_col() +
+    labs(x = NULL, y = "Percent", fill = "Religion") +
+    guides(fill = FALSE) +
+    facet_grid(~ bigregion)
+```
+
+For most plots the coordinate system is cartesian, showing plots on a plane defined by an x-axis and a y-axis. The coord\_cartesian() function manages this, but we don't need to call it. The coord\_flip() function switches the x and y axes after the plot is made. It does not remap variables to aesthetics. In this case, religion is still mapped to x and pct to y. Because the religion names do not need an axis label to be understood, we set x = NULL in the labs() call.
+
+We will see more of what dplyr's grouping and filtering operations can do later. It is a flexible and powerful framework. For now, think of it as a way to quickly summarize tables of data without having to write code in the body of our ggplot() or geom\_ functions.
+
+### 5.2 Continuous variables by group or category
+
+Let's move to a new dataset, the organdata table. Like gapminder, it has a country-year structure. It contains a little more than a decade's worth of information on the donation of organs for transplants in seventeen OECD countries. The organ procurement rate is a measure of the number of human organs obtained from cadaver organ donors for use in transplant operations. Along with this donation data, the dataset has a variety of numerical demographic measures, and several categorical measures of health and welfare policy and law. Unlike the gapminder data, some observations are missing. These are designated with a value of NA, R's standard code for missing data. The organdata table is included in the socviz library. Load it up and take a quick look. Instead of using head(), for variety this time we will make a short pipeline to select the first six columns of the dataset, and then pick five rows at random using a function called sample\_n(). This function takes two main arguments. First we provide the table of data we want to sample from. Because we are using a pipeline, this is implicitly passed down from the beginning of the pipe. Then we supply the number of draws we want to make.
+
+```{r}
+organdata %>% select(1:6) %>% sample_n(size = 10)
+```
+
+Lets's start by naively graphing some of the data. We can take a look at a scatterplot of donors vs year.
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = year, y = donors))
+p + geom_point()
+## Warning: Removed 34 rows containing missing values
+## (geom_point).
+```
+
+A message from ggplot warns you about the missing values. We'll suppress this warning from now on, so that it doesn't clutter the output, but in general it's wise to read and understand the warnings that R gives, even when code appears to run properly. If there are a large number of warnings, R will collect them all and invite you to view them with the warnings() function.
+
+We could use geom\_line() to plot each country's time series, like we did with the gapminder data. To do that, remember, we need to tell ggplot what the grouping variable is. This time we can also facet the figure by country, as we do not have too many of them.
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = year, y = donors))
+p + geom_line(aes(group = country)) + facet_wrap(~ country)
+```
+
+Figure 5.5: A faceted line plot.
+
+**By default the facets are ordered alphabetically by country. We will see how to change this momentarily.**
+
+**Let's focus on the country-level variation, but without paying attention to the time trend. We can use geom\_boxplot() to get a picture of variation by year across countries. Just as geom\_bar() by default calculates a count of observations by the category you map to x, the stat\_boxplot() function that works with geom\_boxplot() will calculate a number of statistics that allow the box and whiskers to be drawn. We tell geom\_boxplot() the variable we want to categorize by (here, country) and the continuous variable we want summarized (here, donors)**
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = country, y = donors))
+p + geom_boxplot()
+```
+
+The boxplots look interesting but two issues could be addressed. First, as we saw in the previous chapter, it is awkward to have the country names on the x-axis because the labels will overlap. We use coord\_flip() again to switch the axes (but not the mappings).
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = country, y = donors))
+p + geom_boxplot() + coord_flip()
+```
+
+It appears that we just need to change the x & y aesthetics per below and this also works great:).
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(y = country, x = donors))
+p + geom_boxplot()
+```
+
+That's more legible but still not ideal. We generally want our plots to present data in some meaningful order. An obvious way is to have the countries listed from high to low average donation rate. We accomplish this by reordering the country variable by the mean of donors. The reorder() function will do this for us. It takes two required arguments. The first is the categorical variable or factor that we want to reorder.In this case, that's country. The second is the variable we want to reorder it by. Here that is the donation rate, donors. The third and optional argument to reorder() is the function you want to use as a summary statistic. If you only give reorder() the first two required arguments, then by default it will reorder the categories of your first variable by the mean value of the second. You can name any sensible function you like to reorder the categorical variable (e.g., median, or sd). There is one additional wrinkle. In R, the default mean function will fail with an error if there are missing values in the variable you are trying to take the average of. You must say that it is OK to remove the missing values when calculating the mean. This is done by supplying the na.rm=TRUE argument to reorder(), which internally passes that argument on to mean(). We are reordering the variable we are mapping to the x aesthetic, so we use reorder() at that point in our code:
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = reorder(country, donors, na.rm=TRUE),
+                          y = donors))
+p + geom_boxplot() +
+    labs(x=NULL) +
+    coord_flip()
+```
+
+Because it's obvious what the country names are, in the labs() call we set their axis label to empty with labs(x=NULL). Ggplot offers some variants on the basic boxplot, including the violin plot. Try it with geom\_violin(). There are also numerous arguments that control the finer details of the boxes and whiskers, including their width. Boxplots can also take color and fill aesthetic mappings like other geoms.
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = reorder(country, donors, na.rm=TRUE),
+                          y = donors, fill = world))
+p + geom_boxplot() + labs(x=NULL) +
+    coord_flip() + theme(legend.position = "top")
+```
+
+Putting categorical variables on the y-axis to compare their distributions is a very useful trick. Its makes it easy to effectively present summary data on more categories. The plots can be quite compact and fit a relatively large number of cases in by row. The approach also has the advantage of putting the variable being compared onto the x-axis, which sometimes makes it easier to compare across categories. If the number of observations within each categoriy is relatively small, we can skip (or supplement) the boxplots and show the individual observations, too. In this next example we map the world variable to color instead of fill as the default geom\_point() plot shape has a color attribute, but not a fill.
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = reorder(country, donors, na.rm=TRUE),
+                          y = donors, color = world))
+p + geom_point() + labs(x=NULL) +
+    coord_flip() + theme(legend.position = "top")
+```
+
+When we use geom\_point() like this, there is some overplotting of observations. In these cases, it can be useful to perturb the data just a little bit in order to get a better sense of how many observations there are at different values. We use geom\_jitter() to do this. This geom works much like geom\_point(), but randomly nudges each observation by a small amount.
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = reorder(country, donors, na.rm=TRUE),
+                          y = donors, color = world))
+p + geom_jitter() + labs(x=NULL) +
+    coord_flip() + theme(legend.position = "top")
+```
+
+The default amount of jitter is a little too much for our purposes. We can control it using height and width arguments to a position\_jitter() function within the geom. Because we're making a one-dimensional summary here, we just need width.
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = reorder(country, donors, na.rm=TRUE),
+                          y = donors, color = world))
+p + geom_jitter(position = position_jitter(width=0.15)) +
+    labs(x=NULL) + coord_flip() + theme(legend.position = "top")
+```
+
+When we want to summarize a categorical variable that just has one point per category, we should use this approach as well. The result will be a Cleveland dotplot, a simple and extremely effective method of presenting data that is usually better than either a bar chart or a table. For example, we can make a Cleveland dotplot of the average donation rate.
+
+This also gives us another opportunity to do a little bit of data munging with a dplyr pipeline. We will use one to aggregate our larger country-year data frame to a smaller table of summary statistics by country. There is more than one way to do pipeline this task. We could choose the variables we want to summarize and then repeatedly use the mean() and sd() functions to calculate the means and standard deviations of the variables we want. We will again use the pipe operator, %\>%, to do our work:
+
+This also gives us another opportunity to do a little bit of data munging with a dplyr pipeline. We will use one to aggregate our larger country-year data frame to a smaller table of summary statistics by country. There is more than one way to do pipeline this task. We could choose the variables we want to summarize and then repeatedly use the mean() and sd() functions to calculate the means and standard deviations of the variables we want. We will again use the pipe operator, %\>%, to do our work:
+
+```{r}
+by_country <- organdata %>% group_by(consent_law, country) %>%
+    summarize(donors_mean= mean(donors, na.rm = TRUE),
+              donors_sd = sd(donors, na.rm = TRUE),
+              gdp_mean = mean(gdp, na.rm = TRUE),
+              health_mean = mean(health, na.rm = TRUE),
+              roads_mean = mean(roads, na.rm = TRUE),
+              cerebvas_mean = mean(cerebvas, na.rm = TRUE))
+```
+
+Other way of doing this when per below for more see: [Column-wise operations](https://dplyr.tidyverse.org/dev/articles/colwise.html#multiple-functions)
+
+```{r}
+mean_list <- list(
+  mean = ~mean(.x, na.rm = TRUE))
+```
+
+```{r}
+by_country <- organdata %>%
+  group_by(consent_law, country) %>% 
+  summarise(across(c(donors, gdp, health, roads, cerebvas), mean_list),
+            donors_sd = sd(donors, na.rm = TRUE))
+```
+
+The pipeline consists of two steps. First we group the data by consent\_law and country, and then use summarize() to create six new variables, each one of which is the mean or standard deviation of each country's score on a corresponding variable in the original organdata data frame.
+
+As usual, summarize() step, will inherit information about the original data and the grouping, and then do its calculations at the innermost grouping level. In this case it takes all the observations for each country and calculates the mean or standard deviation as requested. Here is what the resulting object looks like:
+
+For an alternative view, change country to year in the grouping statement and see what happens.
+
+```{r}
+by_country
+```
+
+As before, the variables specified in group\_by() are retained in the new data frame, the variables created with summarize() are added, and all the other variables in the original data are dropped. The countries are also summarized alphabetically within consent\_law, which was the outermost grouping variable in the group\_by() statement at the start of the pipeline.
+
+Using our pipeline this way is reasonable, but the code is worth looking at again. For one thing, we have to repeatedly type out the names of the mean() and sd() functions and give each of them the name of the variable we want summarized and the na.rm = TRUE argument each time to make sure the functions don't complain about missing values. We also repeatedly name our new summary variables in the same way, by adding \_mean or \_sd to the end of the original variable name. If we wanted to calculate the mean and standard deviation for all the numerical variables in organdata, our code would get even longer. Plus, in this version we lose the other, time-invariant categorical variables that we haven't grouped by, such as world. When we see repeated actions like this in our code, we can ask whether there's a better way to proceed.
+
+There is. What we would like to do is apply the mean() and sd() functions to every numerical variable in organdata, but only the numerical ones. Then we want to name the results in a consistent way, and return a summary table including all the categorical variables like world. We can create a better version of the by\_country object using a little bit of R's functional programming abilities. Here is the code:
+
+```{r}
+by_country <- organdata %>% group_by(consent_law, country) %>%
+    summarize_if(is.numeric, funs(mean, sd), na.rm = TRUE) %>%
+    ungroup()
+```
+
+another/recent way of doing it user the reference link above
+
+```{r}
+mean_sd <- list(
+  mean = ~mean(.x, na.rm = TRUE),
+  sd = ~sd(.x, na.rm = TRUE))
+```
+
+```{r}
+by_country <- organdata %>% 
+  group_by(consent_law, country) %>%
+    summarize(across(is.numeric, mean_sd))%>%
+    ungroup()
+```
+
+In the last step in the pipeline we ungroup() the data, so that the result is a plain tibble.
+
+Sometimes graphing functions can get confused by grouped tibbles where we don't explicitly use the groups in the plot.
+
+Here is what the pipeline returns:
+
+```{r}
+by_country
+```
+
+All the numeric variables have been summarized. They are named using the original variable, with the function's name appended: donors\_mean and donors\_sd, and so on. This is a compact way to rapidly transform our data in various ways. There is a family of summarize\_ functions for various tasks, and a complementary group of mutate\_ functions for when we want to add columns to the data rather than aggregated it.
+
+With our data summarized by country, we can draw a dotplot with geom\_point(). Let's also color the results by the consent law for each country.
+
+```{r}
+p <- ggplot(data = by_country,
+            mapping = aes(x = donors_mean, y = reorder(country, donors_mean),
+                          color = consent_law))
+p + geom_point(size=3) +
+    labs(x = "Donor Procurement Rate",
+         y = "", color = "Consent Law") +
+    theme(legend.position="top")
+```
+
+Figure 5.13: A Cleveland dotplot, with colored points.
+
+Alternatively, if we liked, we could use a facet instead of coloring the points. Using facet\_wrap() we can split the consent\_law variable into two panels, and then rank the countries by donation rate within each panel. Because we have a categorical variable on our y-axis, there are two wrinkles worth noting. First, if we leave facet\_wrap() to its defaults, the panels will be plotted side by side. This will make it difficult to compare the two groups on the same scale. Instead the plot will be read left to right, which is not useful. To avoid this, we will have the panels appear one on top of the other by saying we only want to have one column. This is the ncol=1 argument. Second, and again because we have a categorical variable on the y-axis, the default facet plot will have the names of every country appear on the y-axis of both panels. (Were the y-axis a continuous variable this would be the what we would want.) In that case, only half the rows in each panel of our plot will have points in them.
+
+**To avoid this we allow the y-axes scale to be free. This is the scales="free\_y" argument.** Again, for faceted plots where both variables are continuous, we generally do not want the scales to be free, because it allows the x- or y-axis for each panel to vary with the range of the data inside that panel only, instead of the range across the whole dataset. Ordinarily, the point of small-multiple facets is to be able to compare across the panels. This means free scales are usually not a good idea, because each panel gets its own x- or y-axis range, which breaks comparability. **But where one axis is categorical, as here, we can free the categorical axis and leave the continuous one fixed. The result is that each panel shares the same x-axis, and it is easy to compare between them.**
+
+```{r}
+p <- ggplot(data = by_country,
+            mapping = aes(x = donors_mean,
+                          y = reorder(country, donors_mean)))
+
+p + geom_point(size=3) +
+    facet_wrap(~ consent_law, scales = "free_y", ncol = 1) +
+    labs(x= "Donor Procurement Rate",
+         y= "") 
+```
+
+Figure 5.14: A faceted dotplot with free scales on the y-axis.
+
+Cleveland dotplots are generally preferred to bar or column charts. When making them, put the categories on the y-axis and order them in the way that is most relevant to the numerical summary you are providing. This sort of plot is also an excellent way to summarize model results or any data with with error ranges. We use geom\_point() to draw our dotplots. There is a geom called geom\_dotplot(), but it is designed to produce a different sort of figure. It is a kind of histogram, with individual observations represented by dots that are then stacked on top of one another to show how many of them there are.
+
+The Cleveland-style dotplot can be extended to cases where we want to include some information about variance or error in the plot. Using geom\_pointrange(), we can tell ggplot to show us a point estimate and a range around it. Here we will use the standard deviation of the donation rate that we calculated above. But this is also the natural way to present, for example, estimates of model coefficients with confidence intervals. With geom\_pointrange() we map our x and y variables as usual, but the function needs a little more information than geom\_point. It needs to know the range of the line to draw on either side of the point, defined by the arguments ymax and ymin. This is given by the y value (donors\_mean) plus or minus its standard deviation (donors\_sd). If a function argument expects a number, it is OK to give it a mathematical expression that resolves to the number you want. R will calculate the result for you.
+
+```{r}
+p <- ggplot(data = by_country, mapping = aes(x = reorder(country,
+              donors_mean), y = donors_mean))
+
+p + geom_pointrange(mapping = aes(ymin = donors_mean - donors_sd,
+       ymax = donors_mean + donors_sd)) +
+     labs(x= "", y= "Donor Procurement Rate") + coord_flip()
+```
+
+Because geom\_pointrange() expects y, ymin, and ymax as arguments, we map donors\_mean to y and the ccode variable to x, then flip the axes at the end with coord\_flip().
+
+### 5.3 Plot text directly
+
+It can sometimes be useful to plot the labels along with the points in a scatterplot, or just plot informative labels directly. We can do this with geom\_text().
+
+```{r}
+p <- ggplot(data = by_country,
+            mapping = aes(x = roads_mean, y = donors_mean))
+p + geom_point() + geom_text(mapping = aes(label = country))
+```
+
+Figure 5.16: Plotting labels and text.
+
+The text is plotted right on top of the points, because both are positioned using the same x and y mapping. One way of dealing with this, often the most effective if we are not too worried about excessive precision in the graph, is to remove the points by dropping geom\_point() from the plot. A second option is to adjust the position of the text. We can left- or right-justify the labels using the hjust argument to geom\_text(). **Setting hjust=0 will left justify the label, and hjust=1 will right justify it.**
+
+```{r}
+p <- ggplot(data = by_country,
+            mapping = aes(x = roads_mean, y = donors_mean))
+
+p + geom_point() + geom_text(mapping = aes(label = country), hjust = 0)
+```
+
+Figure 5.17: Plot points and text labels, with a horizontal position adjustment.
+
+**You might be tempted to try different values to hjust to fine-tune your labels. But this is not a robust approach. It will often fail because the space is added in proportion to the length of the label. The result is that longer labels move further away from their points than you want. There are ways around this, but they introduce other problems.**
+
+**Instead of wrestling any further with geom\_text(), we will use ggrepel instead. This very useful library adds some new geoms to ggplot. Just as ggplot extends the plotting capabilities of R, there are many small libraries that extend the capabilities of ggplot, often by providing some new type of geom. The ggrepel library provides geom\_text\_repel() and geom\_label\_repel(), two geoms that can pick out labels much more flexibly than the default geom\_text(). First, make sure the library is installed, then load it in the usual way:**
+
+```{r}
+library(ggrepel)
+```
+
+We will use geom\_text\_repel() instead of geom\_text(). To demonstrate some of what geom\_text\_repel() can do, we will switch datasets and work with some historical U.S. presidential election data provided in the socviz library.
+
+```{r}
+elections_historic %>% select(2:7) 
+```
+
+```{r}
+glimpse(elections_historic)
+```
+
+```{r}
+p_title <- "Presidential Elections: Popular & Electoral College Margins"
+p_subtitle <- "1824-2016"
+p_caption <- "Data for 2016 are provisional."
+x_label <- "Winner's share of Popular Vote"
+y_label <- "Winner's share of Electoral College Votes"
+```
+
+```{r}
+
+p <- ggplot(elections_historic, aes(x = popular_pct, y = ec_pct, label = winner_label
+                                    ))
+```
+
+```{r}
+p + geom_hline(yintercept = 0.5, size = 1.4, color = "gray80") +
+    geom_vline(xintercept = 0.5, size = 1.4, color = "gray80") +
+    geom_point() +
+    geom_text_repel() +
+    scale_x_continuous(labels = scales::percent) +
+    scale_y_continuous(labels = scales::percent) +
+    labs(x = x_label, y = y_label, title = p_title, subtitle = p_subtitle,
+         caption = p_caption)
+```
+
+Figure 5.18: Text labels with ggrepel.
+
+Figure 5.18 takes each U.S. presidential election since 1824 (the first year that the size of the popular vote was recorded), and plots the winner's share of the popular vote against the winner's share of the electoral college vote. The shares are stored in the data as proportions (from 0 to 1) rather than percentages, so we need to adjust the labels of the scales using scale\_x\_continuous() and scale\_y\_continuous(). Seeing as we are interested in particular presidencies,we also want to label the points. But, because many of the data points are plotted quite close together we need to make sure the labels do not overlap with each other, or obscure other points. The geom\_text\_repel() function handles the problem very well. This plot has relatively long labels. We could put them directly in the code, but just to keep things a bit tidier we assign the text to some named objects instead. Then we use those in the plot formula.
+
+Normally it is not a good idea to label every point on a plot in the way we do here. A better approach might be to select a few points of particular interest.
+
+In this plot, what is of interest about any particular point is the quadrant of the x-y plane each point it is in, and how far away it is from the fifty percent threshold on both the x-axis (with the popular vote share) and the y-axis (with the electoral college vote share). To underscore this point we draw two reference lines at the fifty percent line in each direction. They are drawn at the beginning of the plotting process so that the points and labels can be layered on top of them. We use two new geoms, geom\_hline() and geom\_vline() to make the lines. They take yintercept and xintercept arguments, respectively, and the lines can also be sized and colored as you please. There is also a geom\_abline() geom that draws straight lines based on a supplied slope and intercept. This is useful for plotting, for example, 45 degree reference lines in scatterplots.
+
+The ggrepel package has several other useful geoms and options to aid with effectively plotting labels along with points. The performance of its labeling algorithm is consistently very good. For many purposes it will be a better first choice than geom\_text().
+
+### 5.4 Label outliers
+
+Sometimes we want to pick out some points of interest in the data without labeling every single item. We can still use geom\_text() or geom\_text\_repel(). We just need to pick out the points we want to label. In the code above, we do this on the fly by telling geom\_text\_repel() to use a different data set from the one geom\_point() is using. We do this using the subset() function.
+
+```{r}
+p <- ggplot(data = by_country,
+            mapping = aes(x = gdp_mean, y = health_mean))
+
+p + geom_point() +
+  geom_text_repel(data = subset(by_country, gdp_mean > 25000),
+                  mapping = aes(label = country))
+
+p <- ggplot(data = by_country,
+            mapping = aes(x = gdp_mean, y = health_mean))
+
+p + geom_point() +
+  geom_text_repel(
+    data = subset(
+      by_country,
+      gdp_mean > 25000 |
+        health_mean < 1500 |
+        country %in% "Belgium"
+    ),
+    mapping = aes(label = country)
+  )
+```
+
+In the first figure, we specify a new data argument to the text geom, and use subset() to create a small dataset on the fly. The subset() function takes the by\_country object and selects only the cases where gdp\_mean is over 25,000, with the result that only those points are labeled in the plot. The criteria we use can be whatever we like, as long as we can write a logical expression that defines it. For example, in the lower figure we pick out cases where gdp\_mean is greater than 25,000, or health\_mean is less than 1,500, or the country is Belgium. In all of these plots, because we are using geom\_text\_repel(), we no longer have to worry about our earlier problem where the country labels were clipped at the edge of the plot.
+
+Alternatively, we can pick out specific points by creating a dummy variable in the data set just for this purpose. Here we add a column to organdata called ind. An observation gets coded as TRUE if ccode is "Ita", or "Spa", and if the year is greater than 1998. We use this new ind variable in two ways in the plotting code. First, we map it to the color aesthetic in the usual way. Second, we use it to subset the data that the text geom will label. Then we suppress the legend that would otherwise appear for the label and color aesthetics by using the guides() function.
+
+```{r}
+organdata$ind <- organdata$ccode %in% c("Ita", "Spa") &
+                    organdata$year > 1998
+
+```
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads,
+                          y = donors, color = ind))
+p + geom_point() +
+    geom_text_repel(data = subset(organdata, ind),
+                    mapping = aes(label = ccode)) +
+    guides(label = FALSE, color = FALSE)
+```
+
+### 5.5 Write and draw in the plot area
+
+Sometimes we want to annotate the figure directly. Maybe we need to point out something important that is not mapped to a variable. We use annotate() for this purpose. It isn't quite a geom, as it doesn't accept any variable mappings from our data. Instead, it can use geoms, temporarily taking advantage of their features in order to place something on the plot. The most obvious use-case is putting arbitrary text on the plot.
+
+**We will tell annotate() to use a text geom. It hands the plotting duties to geom\_text(), which means that we can use all of that geom's arguments in the annotate() call. This includes the x, y, and label arguments, as one would expect, but also things like size, color, and the hjust and vjust settings that allow text to be justified. This is particularly useful when our label has several lines in it. We include extra lines by using the special "newline" code,** \n, which we use instead of a space to force a line-break as needed.
+
+```{r}
+p <-ggplot(data = organdata, mapping = aes(x = roads, y = donors))
+p + geom_point() + annotate(geom = "text", x = 91, y = 33,
+                            label = "A surprisingly high \n recovery rate.",
+                            hjust = 0)
+```
+
+The annotate() function can work with other geoms, too. Use it to draw rectangles, line segments, and arrows. Just remember to pass along the right arguments to the geom you use. We can add a rectangle to this plot, for instance, with a second call to the function.
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads, y = donors))
+p + geom_point() +
+    annotate(geom = "rect", xmin = 125, xmax = 155,
+             ymin = 30, ymax = 35, fill = "red", alpha = 0.4) + 
+    annotate(geom = "text", x = 157, y = 33,
+             label = "A surprisingly high \n recovery rate.", hjust = 0)
+```
+
+Figure 5.22: Using two different geoms with annotate().
+
+### 5.6 Understanding scales, guides, and themes
+
+**This chapter has gradually extended our ggplot vocabulary in two ways. First, we introduced some new geom\_ functions that allowed us to draw new kinds of plots. Second, we made use of new functions controlling some aspects of the appearance of our graph. We used scale\_x\_log10(), scale\_x\_continuous() and other scale\_ functions to adjust axis labels. We used the guides() function to remove the legends for a color mapping and a label mapping. And we also used the theme() function to move the position of a legend from the side to the top of a figure.**
+
+Learning about new geoms extended what we have seen already. Each geom makes a different type of plot. **Different plots require different mappings in order to work, and so each geom\_ function takes mappings tailored to the kind of graph it draws. You can't use geom\_point() to make a scatterplot without supplying an x and a y mapping, for example. Using geom\_histogram() only requires you to supply an x mapping. Similarly, geom\_pointrange() requires ymin and ymax mappings in order to know where to draw the lineranges it makes. A geom\_ function may take optional arguments, too. When using geom\_boxplot() you can specify what the outliers look like using arguments like outlier.shape and outlier.color.**
+
+The second kind of extension introduced some new functions, and with them some new concepts. **What are the differences between the scale\_ functions, the guides() function, and the theme() function? When do you know to use one rather than the other? Why are there so many scale\_ functions listed in the online help, anyway? How can you tell which one you need?**
+
+Here is a rough and ready starting point:
+
+-   Every aesthetic mapping has a scale. If you want to adjust how that scale is marked or graduated, then you use a scale\_ function.
+-   Many scales come with a legend or key to help the reader interpret the graph. These are called guides. You can make adjustments to them with the guides() function. Perhaps the most common use case is to make the legend disappear, as it is sometimes superfluous. Another is to adjust the arrangement of the key in legends and colorbars.
+-   Graphs have other features not strictly connected to the logical structure of the data being displayed. These include things like their background color, the typeface used for labels, or the placement of the legend on the graph. To adjust these, use the theme() function.
+
+Consistent with ggplot's overall approach, adjusting some visible feature of the graph means first thinking about the relationship that the feature has with the underlying data. **Roughly speaking, if the change you want to make will affect the substantive interpretation of any particular geom, then most likely you will either be mapping an aesthetic to a variable using that geom's aes() function, or you will be specifying a change via some scale\_ function. If the change you want to make does not affect the interpretation of a given geom\_, then most likely you will either be setting a variable inside the geom\_ function, or making a cosmetic change via the theme() function.**
+
+**Scales and guides are closely connected, which can make things confusing. The guide provides information about the scale, such as in a legend or colorbar. Thus, it is possible to make adjustments to guides from inside the various scale\_ functions. More often it is easier to use the guides() function directly.**
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads,
+                          y = donors,
+                          color = world))
+p + geom_point()
+```
+
+Figure 5.23: Every mapped variable has a scale.
+
+Figure 5.23 shows a plot with three aesthetic mappings. The variable roads is mapped to x; donors is mapped to y; and world is mapped to color. The x and y scales are both continuous, running smoothly from just under the lowest value of the variable to just over the highest value. Various labeled tick marks orient the reader to the values on each axis. **The color mapping also has a scale. The world measure is an unordered categorical variable, so its scale is discrete.** It takes one of four values, each represented by a different color.
+
+**Along with color, mappings like fill, shape, and size will have scales that we might want to customize or adjust.** **We could have mapped world to shape instead of color. In that case our four-category variable would have a scale consisting of four different shapes. Scales for these mappings may have labels, axis tick marks at particular positions, or specific colors or shapes. If we want to adjust them, we use one of the scale\_ functions.**
+
+Many different kinds of variable can be mapped. **More often than not x and y are continuous measures. But they might also easily be discrete, as when we mapped country names to the y axis in our boxplots and dotplots.** **An x or y mapping can also be defined as a transformation onto a log scale, or as a special sort of number value like a date.** **Similarly, a color or a fill mapping can be discrete and unordered, as with our world variable, or discrete and ordered, as with letter grades in an exam.** **A color or fill mapping can also be a continuous quantity, represented as a gradient running smoothly from a low to a high value. Finally, both continuous gradients and ordered discrete values might have some defined neutral midpoint with extremes diverging in both directions.**
+
+**Because we have several potential mappings, and each mapping might be to one of several different scales, we end up with a lot of individual scale\_ functions. Each deals with one combination of mapping and scale.** They are named according to a consistent logic, shown in Figure 5.24. **First comes the scale\_ name, then the mapping it applies to, and finally the kind of value the scale will display. Thus, the scale\_x\_continuous() function controls x scales for continuous variables; scale\_y\_discrete() adjusts y scales for discrete variables; and scale\_x\_log10() transforms an x mapping to a log scale.** **Most of the time, ggplot will guess correctly what sort of scale is needed for your mapping. Then it will work out some default features of the scale (such as its labels and where the tick marks go). In many cases you will not need to make any scale adjustments. If x is mapped to a continuous variable then adding + scale\_x\_continuous() to your plot statement with no further arguments will have no effect. It is already there implicitly. Adding + scale\_x\_log10(), on the other hand, will transform your scale, as now you have replaced the default treatment of a continuous x variable.**
+
+A schema for naming the scale function scale\_<MAPPING>\_<KIND>()
+
+Figure 5.24: A schema for naming the scale functions.
+
+**If you want to adjust the labels or tick marks on a scale, you will need to know which mapping it is for and what sort of scale it is. Then you supply the arguments to the appropriate scale function. For example, we can change the x-axis of the previous plot to a log scale, and then also change the position and labels of the tick marks on the y-axis.**
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads,
+                          y = donors,
+                          color = world))
+p + geom_point() +
+    scale_x_log10() +
+    scale_y_continuous(breaks = c(5, 15, 25),
+                       labels = c("Five", "Fifteen", "Twenty Five"))
+```
+
+Figure 5.25: Making some scale adjustments.
+
+The same applies to mappings like color and fill. Here the available scale\_ functions include ones that deal with **continuous, diverging, and discrete variables**, as well as others that we will encounter later when we discuss the use of color and color palettes in more detail. **When working with a scale that produces a legend, we can also use this its scale\_ function to specify the labels in the key.** **To change the title of the legend, however, we use the labs() function, which lets us label all the mappings.**
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads,
+                          y = donors,
+                          color = world))
+p + geom_point() +
+    scale_color_discrete(labels =
+                             c("Corporatist", "Liberal",
+                               "Social Democratic", "Unclassified")) +
+    labs(x = "Road Deaths",
+         y = "Donor Procurement",
+        color = "Welfare State")
+```
+
+Figure 5.26: Relabeling via a scale function.
+
+**If we want to move the legend somewhere else on the plot, we are making a purely cosmetic decision and that is the job of the theme() function. As we have already seen, adding + theme(legend.position = "top") will move the legend as instructed. Finally, to make the legend disappear altogether, we tell ggplot that we do not want a guide for that scale. This is generally not good practice, but there can be good reasons to do it. We will see some examples later on.**
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads,
+                          y = donors,
+                          color = world))
+p + geom_point() +
+    labs(x = "Road Deaths",
+         y = "Donor Procurement") +
+    guides(color = FALSE)
+```
+
+Figure 5.27: Removing the guide to a scale.
+
+We will look more closely at scale\_ and theme() functions in Chapter 8, when we discuss how to polish plots that we are ready to display or publish. Until then, we will use **scale\_ functions fairly regularly to make small adjustments to the labels and axes of our graphs**. And we will occasionally use the theme() function to make some cosmetic adjustments here and there. So you do not need to worry too much about additional details of how they work until later on. But at this point it is worth knowing what scale\_ functions are for, and the logic behind their naming scheme. Understanding the scale\_<mapping>\_<kind>() rule makes it easier to see what is going on when one of these functions is called to make an adjustment to a plot.
+
+### 5.7 Where to go next
+
+We covered several new functions and data aggregation techniques in this Chapter. You should practice working with them.
+
+-   The subset() function is very useful when used in conjunction with a series of layered geoms. Go back to your code for the Presidential Elections plot (Figure 5.18) and redo it so that it shows all the data points but only labels elections since 1992. You might need to look again at the elections\_historic data to see what variables are available to you. You can also experiment with subsetting by political party, or changing the colors of the points to reflect the winning party.
+-   Use geom\_point() and reorder() to make a Cleveland dot plot of all Presidential elections, ordered by share of the popular vote.
+-   Try using annotate() to add a rectangle that lightly colors the entire upper left quadrant of Figure 5.18.
+-   The main action verbs in the dplyr library are group\_by(), filter(), select(), summarize(), and mutate(). Practice with them by revisiting the gapminder data to see if you can reproduce a pair of graphs from Chapter One, shown here again in Figure 5.28. You will need to filter some rows, group the data by continent, and calculate the mean life expectancy by continent before beginning the plotting process.
+-   Get comfortable with grouping, mutating, and summarizing data in pipelines. This will become a routine task as you work with your data. There are many ways that tables can be aggregated and transformed. Remember group\_by() groups your data from left to right, with the rightmost or innermost group being the level calculations will be done at; mutate() adds a column at the current level of grouping; and summarize() aggregates to the next level up. Try creating some grouped objects from the GSS data, calculating frequencies as you learned in this Chapter, and then check to see if the totals are what you expect. For example, start by grouping degree by race, like this:
+
+```{r}
+gss_sm %>% group_by(race, degree) %>%
+    summarize(N = n()) %>%
+    mutate(pct = round(N / sum(N)*100, 0)) 
+```
+
+-   This code is similar to what you saw earlier, but a little more compact. (We calculate the pct values directly.) Check the results are as you expect by grouping by race and summing the percentages. Try doing the same exercise grouping by sex or region.
+
+-   Try summary calculations with functions other than sum. Can you calculate the mean and median number of children by degree? (Hint: the childs variable in gss\_sm has children as a numeric value.)
+
+-   dplyr has a large number of helper functions that let you summarize data in many different ways. The vignette on window functions included with the dplyr documentation is a good place to begin learning about these. You should also look at Chapter 3 of Wickham & Grolemund (2016) for more information on transforming data with dplyr.
+
+-   Experiment with the gapminder data to practice some of the new geoms we have learned. Try examining population or life expectancy over time using a series of boxplots. (Hint: you may need to use the group aesthetic in the aes() call.) Can you facet this boxplot by continent? Is anything different if you create a tibble from gapminder that explicitly groups the data by year and continent first, and then create your plots with that?
+
+-   Read the help page for geom\_boxplot() and take a look at the notch and varwidth options. Try them out to see how they change the look of the plot.
+
+-   As an alternative to geom\_boxplot() try geom\_violin() for a similar plot, but with a mirrored density distribution instead of a box and whiskers.
+
+-   geom\_pointrange() is one of a family of related geoms that produce different kinds of error bars and ranges, depending on your specific needs. They include geom\_linerange(), geom\_crossbar(), and geom\_errorbar(). Try them out using gapminder or organdata to see how they differ.
+
+## 8 Refine your plots
+
+So far we have mostly used ggplot's default output when making our plots, generally not looking at opportunities to tweak or customize things to a any great extent. In general, when making figures during exploratory data analysis, the default settings in ggplot should be pretty good to work with. It's only when we have some specific plot in mind that the question of polishing the results comes up. Refining a plot can mean several things. We might want to get the look of it just right, based on our own tastes and our sense of what needs to be highlighted. We might want to format it in a way that will meet the expectations of a journal, or of a conference audience, or the general public. We might want to tweak this or that feature of the plot or add an annotation or additional detail not covered by the default output. Or we might want to completely change the look of the entire thing, given that all of the structural elements of the plot are in place. We have the resources in ggplot to do all of these things.
+
+Let's begin by looking at a new dataset, asasec. This is some data on membership over time in special-interest sections of the American Sociological Association.
+
+```{r}
+head(asasec)
+```
+
+In this dataset, we have membership data for each section over a ten year period, but the data on section reserves and income (the Beginning and Revenues variables) is for the 2015 year only. Let's look at the relationship between section membership and section revenues for a single year, 2014.
+
+```{r}
+p <- ggplot(data = subset(asasec, Year == 2014),
+            mapping = aes(x = Members, y = Revenues, label = Sname))
+
+p + geom_point() + geom_smooth()
+```
+
+This is our basic scatterplot-and-smoother graph. To refine it, let's begin by identifying some outliers, switch from loess to OLS, and introduce a third variable.
+
+```{r}
+p <- ggplot(data = subset(asasec, Year == 2014),
+            mapping = aes(x = Members, y = Revenues, label = Sname))
+
+p + geom_point(mapping = aes(color = Journal)) +
+    geom_smooth(method = "lm")
+```
+
+Now we can add some text labels. At this point it makes sense to use some intermediate objects to build things up as we go. We won't show them all. But by now you should be able to see in your mind's eye what an object like p1 or p2 will look like. And of course you should type out the code and check if you are right as you go.
+
+```{r}
+p0 <- ggplot(data = subset(asasec, Year == 2014),
+             mapping = aes(x = Members, y = Revenues, label = Sname))
+
+p1 <- p0 + geom_smooth(method = "lm", se = FALSE, color = "gray80") +
+    geom_point(mapping = aes(color = Journal)) 
+
+p2 <- p1 + geom_text_repel(data=subset(asasec,
+                                       Year == 2014 & Revenues > 7000),
+                           size = 2)
+```
+
+Continuing with the p2 object still, we can label the axes and scales. We also add a title and move the legend to make better use of the space in the plot.
+
+```{r}
+p3 <- p2 + labs(x="Membership",
+        y="Revenues",
+        color = "Section has own Journal",
+        title = "ASA Sections",
+        subtitle = "2014 Calendar year.",
+        caption = "Source: ASA annual report.")
+p4 <- p3 + scale_y_continuous(labels = scales::dollar) +
+     theme(legend.position = "bottom")
+p4
+```
+
+Figure 8.3: Refining the axes.
+
+### 8.1 Use color to your advantage
+
+You should choose a color palette in the first place based on its ability to express the data you are plotting. **An unordered categorical variable like "Country" or "Sex", for example, requires distinct colors that won't be easily confused with one another. An ordered categorical variable like "Level of Education", on the other hand, requires a graded color scheme of some kind running from less to more or earlier to later. There are other considerations, too. For example, if your variable is ordered, is your scale centered on a neutral midpoint with departures to extremes in each direction, as in a Likert scale? Again, these questions are about ensuring accuracy and fidelity when mapping a variable to a color scale. Take care to choose a palette that reflects the structure of your data. For example, do not map sequential scales to categorical palettes, or use a diverging palette for a variable with no well-defined midpoint.**
+
+Separate from these mapping issues, there are considerations about which colors in particular to choose. In general, the default color palettes that ggplot makes available are well-chosen for their perceptual properties and aesthetic qualities. **We can also use color and color layers as device for emphasis, to highlight particular data points or parts of the plot, perhaps in conjunction with other features.**
+
+We choose color palettes for mappings through one of the scale\_ functions for color or fill. While it is possible to very finely control the look of your color schemes by varying the hue, chroma, and luminance of each color you use via scale\_color\_hue(), or scale\_fill\_hue(), in general this is not recommended. Instead you should use the RColorBrewer package to make a wide range of named color palettes available to you, and choose from those. When used in conjunction with ggplot, you access these colors by specifying the scale\_color\_brewer() or scale\_fill\_brewer() functions, depending on the aesthetic you are mapping. Figure 8.7 shows the named palettes you can use in this way.
+
+```{r}
+p <- ggplot(data = organdata,
+            mapping = aes(x = roads, y = donors, color = world))
+p + geom_point(size = 2) + scale_color_brewer(palette = "Set2") +
+    theme(legend.position = "top")
+
+p + geom_point(size = 2) + scale_color_brewer(palette = "Pastel2") +
+        theme(legend.position = "top")
+
+p + geom_point(size = 2) + scale_color_brewer(palette = "Dark2") +
+    theme(legend.position = "top")
+```
+
+**You can also specify colors manually, via scale\_color\_manual() or scale\_fill\_manual(). These functions take a value argument that can be specified as vector of color names or color values that R knows about. R knows many color names (like red, and green, and cornflowerblue. Try demo('colors') for an overview. Alternatively, color values can be specified via their hexadecimal RGB value.** This is a way of encoding color values in the RGB colorspace, where each channel can take a value from 0 to 255 like this. A color hex value begins with a hash or pound character, \#, followed by three pairs of hexadecimal or "hex" numbers. Hex values are in Base 16, with the first six letters of the alphabet standing for the numbers 10 to 15. This allows a two-character hex number to range from 0 to 255. You read them as \#rrggbb, where rr is the two-digit hex code for the red channel, gg for the green channel, and bb for the blue channel. So \#CC55DD translates in decimal to CC = 204 (red), 55 = 85 (green), and DD = 221 (blue). It gives a strong pink color.
+
+```{r}
+demo('colors')
+```
+
+Going back to our ASA Membership plot, for example, we can manually introduce a palette from Chang (2013) that's friendly to color-blind viewers.
+
+```{r}
+cb_palette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+                "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+```{r}
+p4 + scale_color_manual(values = cb_palette) 
+```
+
+As is often the case, this work has already been done for us. If we are serious about using a safe palette for color-blind viewers, we should investigate the dichromat package instead. It provides a range of safe palettes and some useful functions for helping you approximately see what your current palette might look like to a viewer with one of several different kinds of color blindness.
+
+For example, let's use RColorBrewer's brewer.pal() function to get five colors from ggplot's default palette.
+
+```{r}
+library(RColorBrewer)
+Default <- brewer.pal(5, "Set2")
+```
+
+The colorblindr package has similar functionality.
+
+Next, we can use a function from the dichromat library to transform these colors to new values that simulate different kinds of color blindness.
+
+```{r}
+library(dichromat)
+
+types <- c("deutan", "protan", "tritan")
+names(types) <- c("Deuteronopia", "Protanopia", "Tritanopia")
+
+color_table <- types %>%
+    purrr::map(~ dichromat(Default, .x)) %>%
+    as_tibble() %>%
+    add_column(Default, .before = TRUE)
+
+color_table
+```
+
+```{r}
+color_comp(color_table)
+```
+
+In this code, we create a vector of types of color blindness that the dichromat() function knows about, and give them proper names. Then we make a table of colors for each type using the purrr library's map() function. The rest of the pipeline converts the results from a list to a tibble and adds the original colors as the first column in the table. We can now plot them to see how they compare, using a convenience function from the socviz library.
+
+The ability to manually specify colors can be useful when the meaning of a category itself has a strong color association. Political parties, for example, tend to have official or quasi-official party colors that people associate with them. In such cases it is helpful to be able to present results for, say, the Green Party in a (perceptually balanced!) green color. When doing this, it is worth keeping in mind that some colors are associated with categories (especially categories of person) for outmoded reasons, or no very good reason. Do not use stereotypical colors just because you can.
+
+```{r}
+# Democrat Blue and Republican Red
+party_colors <- c("#2E74C0", "#CB454A")
+
+p0 <- ggplot(data = subset(county_data,
+                           flipped == "No"),
+             mapping = aes(x = pop,
+                           y = black/100))
+
+p1 <- p0 + geom_point(alpha = 0.15, color = "gray50") +
+    scale_x_log10(labels=scales::comma) 
+
+p1
+```
+
+In the next step we add a second geom\_point() layer. Here we start with the same dataset but extract a complementary subset from it. This time we choose the "Yes" counties on the flipped variable. The x and y mappings are the same, but we add a color scale for these points, mapping the partywinner16 variable to the color aesthetic. Then we specify a manual color scale with scale\_color\_manual(), where the values are the blue and red party\_colors we defined above.
+
+```{r}
+p2 <- p1 + geom_point(data = subset(county_data,
+                                    flipped == "Yes"),
+                      mapping = aes(x = pop, y = black/100,
+                                    color = partywinner16)) +
+    scale_color_manual(values = party_colors)
+
+p2
+```
+
+The next layer sets the y-axis scale and the labels.
+
+```{r}
+p3 <- p2 + scale_y_continuous(labels=scales::percent) +
+    labs(color = "County flipped to ... ",
+         x = "County Population (log scale)",
+         y = "Percent Black Population",
+         title = "Flipped counties, 2016",
+         caption = "Counties in gray did not flip.")
+
+p3
+```
+
+Finally, we add a third layer using the geom\_text\_repel() function. Once again we supply a set of instructions to subset the data for this text layer. We are interested in the flipped counties that have with a relatively high percentage of African-American residents. The result, shown in Figure 8.13 is a complex but legible multi-layer plot with judicious use of color for variable coding and context.
+
+```{r}
+p4 <- p3 + geom_text_repel(data = subset(county_data,
+                                      flipped == "Yes" &
+                                      black  > 25),
+                           mapping = aes(x = pop,
+                                   y = black/100,
+                                   label = state), size = 2)
+
+p4 + theme_minimal() +
+    theme(legend.position="top")
+```
+
+\_\_When producing a graphic like this in ggplot, or when looking at good plots made by others, it should gradually become your habit to see not just the content of the plot but also the implicit or explicit structure that it has. First, you will be able to see the mappings that form the basis of the plot, picking out which variables are mapped to x and y, and which to to color, fill, shape, label, and so on. What geoms were used to produce them? Second, how have the scales been adjusted? Are the axes transformed? Are the fill and color legends combined? And third, especially as you practice making plots of your own, you will find yourself picking out the \*\*layered\* structure of the plot. What is the base layer? What has been drawn on top of it, and in what order? Which upper layers are formed from subsets of the data? Which are new datasets? Are there annotations? The ability to evaluate plots in this way, to apply the grammar of graphics in practice, is useful both for looking at plots and for thinking about how to make them.\_\_
+
+### 8.3 Change the appearance of plots with themes
+
+Our elections plot is in a pretty finished state. But if we want to change the overall look of it all at once, we can do that using ggplot's theme engine. Themes can be turned on or off using the theme\_set() function. It takes the name of a theme (which will itself be a function) as an argument. Try the following:
+
+```{r}
+theme_set(theme_bw())
+p4 + theme(legend.position="top")
+
+theme_set(theme_dark())
+p4 + theme(legend.position="top")
+```
+
+**Internally, theme functions are a set of detailed instructions to turn on, turn off, or modify a large number of graphical elements on the plot. Once set, a theme applies to all subsequent plots and it remains active until it is replaced by a different theme. This be done either through the use of another theme\_set() statement, or on a per-plot basis by adding the theme function to the end of the plot: p4 + theme\_gray() would temporarily override the generally active theme for the p4 object only. You can still use the theme() function to fine-tune any aspect of your plot, as seen above with the relocation of the legend to the top of the graph.**
+
+**The ggplot library comes with several built-in themes, including theme\_minimal() and theme\_classic(), with theme\_gray() or theme\_grey() as the default. If these are not to your taste, install the ggthemes library for many more options. You can, for example, make ggplot output look like it has been featured in the Economist, or the Wall Street Journal, or in the pages of a book by Edward Tufte.**
+
+Using some themes might involve adjusting font sizes or other elements as needed, if the defaults are too large or small. If you use a theme with a colored background, you will also need to consider what color palette you are using when mapping to color or fill aesthetics. You can define your own themes either entirely from scratch, or by starting with one you like and making adjustments from there.
+
+```{r}
+library(ggthemes)
+
+theme_set(theme_economist())
+p4 + theme(legend.position="top")
+
+```
+
+```{r}
+
+theme_set(theme_wsj())
+
+p4 + theme(plot.title = element_text(size = rel(0.6)),
+           legend.title = element_text(size = rel(0.35)),
+           plot.caption = element_text(size = rel(0.35)),
+           legend.position = "top")
+```
+
+Generally speaking, themes with colored backgrounds customized typefaces are best used when making one-off graphics or posters, when preparing figures to integrate into a slide presentation, or when conforming to a house or editorial style for publication. Take care to consider how the choices you make will harmonize with the broader printed or displayed material. Just as with the choice of palettes for aesthetic mappings, when starting out it can be wisest to stick to the defaults or consistently use a theme that has had its kinks already ironed out. **Claus O. Wilke's cowplot package, for instance, contains a well- developed theme suitable for figures whose final destination is a journal article. Bob Rudis's hrbrthemes package, meanwhile, has a distinctive and compact look and feel that takes advantage of some freely-available typefaces.** Both are available via install.packages().
+
+It also contains some convenience functions for laying out several plot objects in a single figure, amongst other features, as we shall see below in one of the case studies.
+
+The theme() function allows you to exert very fine-grained control over the appearance of all kinds of text and graphical elements in a plot. For example, we can change the color, typeface, and font weight of text. If you have been following along writing your code, you will have noticed that the plots you make have not been identical to the ones shown in the text. The axis labels are in a slightly different place from the default, the typeface is different, and there are other smaller changes as well. The theme\_book() function provides the custom ggplot theme used throughout this book. The code for this theme is based substantially on Bob Rudis's theme\_ipsum(), from his hrbrthemes library. You can learn more about it in the Appendix. For this one figure, we then adjust that theme even further by tweaking the text size, and we also remove a number of elements by naming them and making them disappear using element\_blank().
+
+```{r}
+p4 + theme(legend.position = "top")
+
+p4 + theme(legend.position = "top",
+           plot.title = element_text(size=rel(2),
+                                     lineheight=.5,
+                                     family="Times",
+                                     face="bold.italic",
+                                     colour="orange"),
+           axis.text.x = element_text(size=rel(1.1),
+                                      family="Courier",
+                                      face="bold",
+                                      color="purple"))
+```
+
+### 8.4 Use theme elements in a substantive way
+
+It makes good sense to use themes as a way to fix design elements, because that means you can subsequently ignore them, and focus instead on the data you are examining. **But it is also worth remembering that ggplot's theme system is very flexible. It permits a wide range of design elements to be adjusted in order to create custom figures.** For instance, following an example from Wehrwein (2017), we will create an effective small multiple of the age distribution of GSS respondents over the years. The gss\_lon data contains information on the age of each GSS respondent for all the years in the survey since 1972. The base of the figure is a `scaled geom_density()` layer of the sort we saw earlier, this time faceted by the year variable. We will fill the density curves with a dark grey color, and then add an indicator of the mean age in each year, and a text layer for the label. With those in place **we then adjust the detail of several theme elements, mostly to remove them.** **As before we use `element_text()` to tweak the appearance of various text elements such as titles and labels. And we also use `element_blank()` to remove several of them altogether.**
+
+First, we need to calculate the mean age of the respondents for each year of interest. Because the GSS has been around for most (but not all) years since 1972, we will look at distributions about every four years since the beginning. We use a short pipeline to extract the average ages.
+
+```{r}
+yrs <- c(seq(1972, 1988, 4), 1993, seq(1996, 2016, 4))
+
+mean_age <- gss_lon %>%
+    filter(age %nin% NA && year %in% yrs) %>%
+    group_by(year) %>%
+    summarize(xbar = round(mean(age, na.rm = TRUE), 0))
+mean_age$y <- 0.3
+
+yr_labs <- data.frame(x = 85, y = 0.8,
+                      year = yrs)
+```
+
+The y column in mean\_age will come in handy when we want to position the age as a text label. Next, we prepare the data and set up the geoms.
+
+```{r}
+p <- ggplot(data = subset(gss_lon, year %in% yrs),
+            mapping = aes(x = age))
+
+p1 <- p + geom_density(fill = "gray20", color = FALSE,
+                       alpha = 0.9, mapping = aes(y = ..scaled..)) +
+    geom_vline(data = subset(mean_age, year %in% yrs),
+               aes(xintercept = xbar), color = "white", size = 0.5) +
+    geom_text(data = subset(mean_age, year %in% yrs),
+              aes(x = xbar, y = y, label = xbar), nudge_x = 7.5,
+              color = "white", size = 3.5, hjust = 1) +
+    geom_text(data = subset(yr_labs, year %in% yrs),
+              aes(x = x, y = y, label = year)) +
+    facet_grid(year ~ ., switch = "y")
+```
+
+The initial p object subsets the data by the years we have chosen, and maps x to the age variable. The geom\_density() call is the base layer, with arguments to turn off its default line color, set the fill to a shade of gray, and scale the y-axis between zero and one.
+
+Using our summarized dataset, the geom\_vline() layer draws a vertical white line at the mean age of the distribution. The first of two text geoms label the age line (in white). The first geom\_text() call uses a nudge argument to push the label slightly to the right of its x-value. The second labels the year. We do this because we are about to turn off the usual facet labels to make the plot more compact. Finally we use facet\_grid() to break out the age distributions by year. We use the switch argument to move the labels to the left.
+
+With the structure of the plot in place, we then style the elements in the way that we want, using a series of instructions to theme().
+
+```{r}
+p1 + theme_book(base_size = 10, plot_title_size = 10,
+                strip_text_size = 32, panel_spacing = unit(0.1, "lines")) +
+    theme(plot.title = element_text(size = 16),
+          axis.text.x= element_text(size = 12),
+          axis.title.y=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y = element_blank(),
+          strip.background = element_blank(),
+          strip.text.y = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank()) +
+    labs(x = "Age",
+         y = NULL,
+         title = "Age Distribution of\nGSS Respondents")
+```
+
+```{r}
+library(ggridges)
+```
+
+```{r}
+p <- ggplot(data = gss_lon,
+            mapping = aes(x = age, y = factor(year, levels = rev(unique(year)),
+                                     ordered = TRUE)))
+
+p + geom_density_ridges(alpha = 0.6, fill = "lightblue", scale = 1.5) +
+    scale_x_continuous(breaks = c(25, 50, 75)) +
+    scale_y_discrete(expand = c(0.01, 0)) + 
+    labs(x = "Age", y = NULL,
+         title = "Age Distribution of\nGSS Respondents") +
+    theme_ridges() +
+    theme(title = element_text(size = 16, face = "bold"))
+```
+
+The expand argument in scale\_y\_discrete() adjusts the scaling of the y-axis slightly. It has the effect of shortening the distance between the axis labels and the first distribution, and it also prevents the top of the very first distribution from being cut off by the frame of the plot. The package also comes with its own theme, theme\_ridges() that adjusts the labels so that they are aligned properly, and we use it here. The geom\_density\_ridges() function is also capable of reproducing the look of our original version. The degree of overlap in the distributions is controlled by the scale argument in the geom. You can experiment with setting it to values below or above one to see the effects on the layout of the plot.
+
+Much more detailed information on the names of the various elements you can control via theme() can be found in the ggplot documentation. Setting these thematic elements in an ad hoc way is often one of the first things people want to do when they make plot. But in practice, apart from getting the overall size and scale of your plot squared away, making small adjustments to theme elements should be the very last thing you do in the plotting process. Ideally, once you have set up a theme that works well for you, it should be something you can avoid having to do at all.
+
+### 8.5 Case studies
+
+Bad graphics are everywhere. Better ones are within our reach. For the final few sections of this chapter we will work through a few common visualization problems or dilemmas, as seen through some real-life cases. In each case we will look at the original figures and redraw them in new (and better) versions. In the process we will introduce a few new functions and features of ggplot that we have not seen yet. This, too, is true to life. Usually, it's having to face some practical design or visualization question that forces us to ferret out the solution to our problem in the documentation, or come up with some alternative answer on the fly ourselves. Let's start with a common case: the use of dual axes in trend plots.
+
+#### 8.5.1 Two y-axes
+
+In January of 2016, Liz Ann Sonders, Chief Investment Strategist with Charles Schwab, Inc, tweeted about the apparent correlation between two economic time series: the Standard and Poor's 500 stock market index, and the Monetary Base, a measure of the size of money supply. The S&P is an index that ranges from about 700 to about 2,100 over the period of interest (about the last seven years). The Monetary Base ranges from about 1.5 trillion to 4.1 trillion dollars over the same period. This means that we can't plot the two series directly. The Monetary Base is so much larger that it would meake the S&P 500 series appear as a flat line at the bottom. While there are several reasonable ways to address this, people often opt instead to have two y-axes.
+
+Because it is designed by responsible people, R makes it slightly tricky to draw graphs with two y-axes. In fact, ggplot rules it out of order altogether. It is possible to do it using R's base graphics, if you insist. Figure 8.18 shows the result. I will not show the code here. (You can find it at <https://github.com/kjhealy/two-y-axes>.) This is partly because graphics in base R work very differently from the approach we have taken throughout this book, so it would just be confusing, and partly because I do not wish to encourage young people to engage in immoral acts.
+
+Most of the time when people draw plots with two y-axes they want to line the series up as closely as possible because they suspect that there's a substantive association between them, as in this case. The main problem with using two y-axes is that it makes it even easier than usual to fool yourself (or someone else) about the degree of association between the variables. This is because you can adjust the scaling of the axes to relative to one another in way that moves the data series around more or less however you like. For the first half of the graph in Figure 8.18, the red Monetary Base line tracks below the blue S&P 500 and is above it for the second half.
+
+We can "fix" that by deciding to start the second y-axis at zero, which shifts the Monetary Base line above the S&P line for the first half of the series and below it later on. The first panel in Figure 8.19 shows the results. The second panel, meanwhile, adjusts the axes so that the axis tracking the S&P starts at zero. The axis tracking the Monetary Base starts around its minimum (as is generally good practice), but now both axes max out around 4,000. The units are different, of course. The 4,000 on the S&P side is an index number, while the Monetary Base number is 4,000 billion dollars. The effect is to flatten out the S&P's apparent growth quite a bit, muting the association between the two variables substantially. You could tell quite a different story with this one, if you felt like it.
+
+How else might we draw this data? We could use a split- or broken-axis plot to show the two series at the same time. These can be effective sometimes, and they seem to have better perceptual properties than overlayed charts with dual axes (Isenberg, Bezerianos, Dragicevic, & Fekete, 2011). They are most useful in cases where the series you are plotting are of the same kind, but of very different magnitudes. That is not the case here.
+
+Another compromise, if the series are not in the same units (or of widely differing magnitudes), is to rescale one of the series (e.g., by dividing or multiplying it by a thousand), or alternatively to index each of them to 100 at the start of the first period, and then plot them both. Index numbers can have complications of their own, but here they allow us use one axis instead of two, and also to calculate a sensible difference between the two series and plot that as well, in a panel below. It can be quite tricky to visually estimate the difference between series, in part because our perceptual tendency is to look for the nearest comparison point in the other series rather than the one directly above or below. Following Cleveland (1994), we can also add a panel underneath that tracks the running difference between the two series. We begin by making each plot and storing them in an object. To do this, it will be convenient to fully tidy the data in to a long format, with the indexed series in the key variable and their corresponding scores as the values. We use tidyr's gather() function for this:
+
+```{r}
+head(fredts)
+```
+
+```{r}
+fredts_m <- fredts %>% select(date, sp500_i, monbase_i) %>%
+    gather(key = series, value = score, sp500_i:monbase_i)
+
+head(fredts_m)
+```
+
+Once the data are tidied in this way we can make our graph.
+
+```{r}
+p <- ggplot(data = fredts_m,
+            mapping = aes(x = date, y = score,
+                          group = series,
+                          color = series))
+p1 <- p + geom_line() + theme(legend.position = "top") +
+    labs(x = "Date",
+         y = "Index",
+         color = "Series")
+
+p <- ggplot(data = fredts,
+            mapping = aes(x = date, y = sp500_i - monbase_i))
+
+p2 <- p + geom_line() +
+    labs(x = "Date",
+         y = "Difference")
+```
+
+Now we have our two plots, we want to lay them out nicely. We do not want them to appear in the same plot area, but we do want to compare them. It would be possible to do this with a facet, but that would mean doing a fair amount of data munging to get all three series (the two indices and the difference between them) into the same tidy data frame. An alternative is to make two separate plots and then arrange them just as we like. For instance, have the comparison of the two series take up most of the space, and put the plot of the index differences along the bottom in a smaller area.
+
+The layout engine used by R and ggplot, called grid, does make this possible. It controls the layout and positioning of plot areas and objects at a lower level than ggplot. Programming grid layouts directly takes a little more work than using ggplot's functions alone. Fortunately, there are some helper libraries that we can use to make things easier. One possibility is to use the gridExtra library. It provides a number of useful functions that let us talk to the grid engine, including grid.arrange(). This function takes a list of plot objects and instructions for how we would like them arranged. The cowplot library we mentioned earlier makes things even easier. It has a plot\_grid() function that works much like grid.arrange() while also taking care of some fine details, including the proper alignment of axes across separate plot objects.
+
+```{r}
+cowplot::plot_grid(p1, p2, nrow = 2, rel_heights = c(0.75, 0.25), align = "v")
+```
+
+Figure 8.20: Indexed series with a running difference below, using two separate plots.
+
+The result is shown in Figure 8.20. It looks pretty good. In this version, the S&P index runs above the Monetary Base for almost the whole series, whereas in the plot as originally drawn, they crossed.
+
+The broader problem with dual-axis plots of this sort is that the apparent association between these variables is probably spurious. The original plot is enabling our desire to spot patterns, but substantively it is probably the case that both of these time series are tending to increase, but are not otherwise related in any deep way. If we were interested in establishing the true association between them, we might begin by naively regressing one on the other. We can try to predict the S&P Index from the Monetary Base, for instance. If we do that, things look absolutely fantastic to begin with, as we appear to explain about 95% of the variance in the S&P just by knowing the size of the Monetary Base from the same period. We're going to be rich!
+
+Sadly, we're probably not going to be rich. While everyone knows that correlation is not causation, with time series data we get this problem twice-over. Even just considering a single series, each observation is often pretty closely correlated with the observation in the period immediately before it, or perhaps with the observation some regular number of periods before it. A time series might have a seasonal component that we would want to account for before making claims about its growth, for example. And if we ask what predicts its growth, then we will introduce some other time series, which will have trend properties of its own. In those circumstances, we more or less automatically violate the assumptions of ordinary regression analysis in a way that produces wildly overconfident estimates of association. The result, which may seem paradoxical when you first run across it, is that a lot of the machinery of time series analysis is about making the serial nature of the data go away.
+
+Like any rule of thumb, it is possible to come up with exceptions, or talk oneself into them. We can imagine situations where the judicious use of dual y-axes might be a sensible way to present data to others, or might help a researcher productively explore a dataset. But in general I recommend against it because is already much too easy to present spurious, or at least overconfident, associations, especially with time series data. Scatterplots can do that just fine. Even with a single series, as we saw back in Chapter 1, we can make associations look steeper or flatter by fiddling with the aspect ratio. Using two y-axes gives you an extra degree of freedom to mess about with the data that, in most cases, you really should not take advantage of. A rule like this will not stop people who want to fool you with charts from trying, of course. But it might help you not fool yourself.
+
+#### 8.5.2 Redrawing a bad slide
+
+In late 2015, Marissa Mayer's performance as CEO of Yahoo was being criticized by many observers. One of them, Eric Jackson, an investment fund manager, sent a 99-slide presentation to Yahoo's board outlining his best case against Mayer. (He also circulated it publicly.) The style of the slides was typical of business presentations. Slides and posters are a very useful means of communication. In my experience, most people who complain about "Death by PowerPoint" have not sat through enough talks where the presenter hasn't even bothered to prepare slides. But it is striking to see how fully the "slide deck" has escaped its origins as an aid to communication and metastasized into a freestanding quasi-format of its own. Business, the Military, and Academia have all been infected by this tendency in various ways. Never mind taking the time to write a memo or an article, just give us endless pages of bullet points and charts. The disorienting effect is of constant summaries of discussions that never took place.
+
+In any case, Figure 8.21 reproduces a typical slide from the deck. It seems to want to say something about the relationship between Yahoo's number of employees and its revenue, in the context of Mayer's tenure as CEO. The natural thing to do would be to make some kind of scatterplot to see if there was a relationship between these variables. Instead, however, the slide puts time on the x-axis and uses two y-axes to show the employee and revenue data. It plots the revenues as a bar chart and the employee data as points connected by slightly wavy lines. At first glance, it is not clear whether the connecting line segments are just manually added or if there's some principle underlying the wiggles. (They turn out to have been created in Excel.) The revenue values are used as labels within the bars. The points are not labeled. Employee data goes to 2015 but revenue data only to 2014. An arrow points to the date Mayer was hired as CEO, and a red dotted line seems to indicate ... actually I'm not sure. Maybe some sort of threshold below which employee numbers should fall? Or maybe just the last observed value, to allow comparison across the series? It isn't clear. Finally, notice that while the revenue numbers are annual, there is more than one observation per year for some of the later employee numbers.
+
+How should we redraw this chart? Let's focus on getting across the relationship between employee numbers and revenue, as that seems to be the motivation for it in the first place. As a secondary element, we want to say something about Mayer's role in this relationship. The original sin of the slide is that it plots two series of numbers using two different y-axes, as discussed above. We see this from business analysts more often than not. Time is almost the only thing they ever put on the x-axis.
+
+To redraw the chart I took the numbers from the bars on the chart together with employee data from QZ.com. Where there was quarterly data in the slide, I used the end-of-year number for employees, except for 2012. Mayer was appointed in July of 2012. Ideally we would have quarterly revenue and quarterly employee data for all years, but given that we do not, the most sensible thing to do is to keep things annualized except for the one year of interest, when Mayer arrives as CEO. It's worth doing this because otherwise the large round of layoffs that immediately preceded her arrival would be misattributed to her tenure as CEO. The upshot is that we have two observations for 2012 in the dataset. They have the same revenue data but different employee numbers. The figures can be found in the yahoo dataset.
+
+```{r}
+head(yahoo)
+```
+
+The redrawing is straightforward. We could just draw a scatterplot and color the points by whether Mayer was CEO at the time. By now you should know how to do this quite easily. We can take a small step further by making a scatterplot but also holding on to the temporal element beloved of business analysts. We can use geom\_path() and use use line segments to "join the dots" of the yearly observations in order, labeling each point with its year. The result is a plot that shows the trajectory of the company over time, like a snail moving across a flagstone. Again, bear in mind that we have two observations for 2012.
+
+```{r}
+p <- ggplot(data = yahoo,
+            mapping = aes(x = Employees, y = Revenue))
+p + geom_path(color = "gray80") +
+    geom_text(aes(color = Mayer, label = Year),
+              size = 3, fontface = "bold") +
+    theme(legend.position = "bottom") +
+    labs(color = "Mayer is CEO",
+         x = "Employees", y = "Revenue (Millions)",
+         title = "Yahoo Employees vs Revenues, 2004-2014") +
+    scale_y_continuous(labels = scales::dollar) +
+    scale_x_continuous(labels = scales::comma)
+```
+
+Figure 8.22: Redrawing as a connected scatterplot.
+
+This way of looking at the data suggests that Mayer was appointed after a period of falling revenues and just following a very large round of layoffs, a fairly common pattern with the leadership of large firms. Since then, either through new hires or acquisitions, employee numbers have crept back up a little while revenues have continued to fall. This version conveys what the original slide was trying to get across, but rather more clearly.
+
+Alternatively, we can keep the analyst community happy by putting time back on the x-axis and plotting the ratio of revenue to employees on the y-axis. This gives us the linear time-trend trend back, only in a more sensible fashion. We begin the plot by using geom\_vline() to add a vertical line marking Mayer's accession to the CEO position.
+
+```{r}
+p <- ggplot(data = yahoo,
+            mapping = aes(x = Year, y = Revenue/Employees))
+
+p + geom_vline(xintercept = 2012) +
+    geom_line(color = "gray60", size = 2) +
+    annotate("text", x = 2013, y = 0.44,
+             label = " Mayer becomes CEO", size = 2.5) +
+    labs(x = "Year\n",
+         y = "Revenue/Employees",
+         title = "Yahoo Revenue to Employee Ratio, 2004-2014")
+```
+
+#### 8.5.3 Saying no to pie
+
+For a third example, we turn to pie charts. Figure 8.24 shows a pair of charts from a New York Federal Reserve Bank briefing on the structure of debt in the United States (Chakrabarti, Haughwout, Lee, Scally, & Klaauw, 2017). As we saw in Chapter 1, the perceptual qualities of pie charts are not great. In a single pie chart, it is usually harder than it should be to estimate and compare the values shown, especially when there are more than a few wedges and when there are a number of wedges reasonably close in size. A Cleveland dot plot or a bar chart is usually a much more straightforward way of comparing quantities. When comparing the wedges between two pie charts, as in this case, the task is made harder again as the viewer has to ping back and forth between the wedges of each pie and the vertically oriented legend underneath.
+
+There is an additional wrinkle in this case. The variable broken down in each pie chart is not only categorical, it is also ordered from low to high. The data describe the percent of all borrowers and the percent of all balances divided up across the size of balances owed, from less than five thousand dollars to more than two hundred thousand dollars. It's one thing to use a pie chart to display shares of an unordered categorical variable, such as percent of total sales due to pizza, lasanga, and risotto for example. Keeping track of ordered categories in a pie chart is harder again, especially when we want to make a comparison between two distributions. The wedges of these two pie charts are ordered (clockwise, from the top), but it's not so easy to follow them. This is partly because of the pie-ness of the chart, and partly because the color palette chosen for the categories is not sequential. Instead it is unordered. The colors allow the debt categories to be distinguished, but don't pick out the sequence from low to high values.
+
+So not only is a less than ideal plot type being used here, it's being made to do a lot more work than usual, and with the wrong sort of color palette. As is often the case with pie charts, the compromise made to facilitate interpretation is to display all of the numerical values for every wedge, and also to add a summary outside the pie. If you find yourself having to do this, it's worth asking whether the chart could be redrawn, or whether you might as well just show a table instead.
+
+Here are two ways we might redraw these pie charts. As usual, neither approach is perfect. Or rather, each approach draws attention to features of the data in slightly different ways. Which works best depends on what parts of the data we want to highlight. The data are in an object called studebt:
+
+```{r}
+head(studebt)
+```
+
+Our first effort to redraw the pie charts uses a faceted comparison of the two distributions. We set up some labels in advance, as we will reuse them. We also make a special label for the facets.
+
+```{r}
+p_xlab <- "Amount Owed, in thousands of Dollars"
+p_title <- "Outstanding Student Loans"
+p_subtitle <- "44 million borrowers owe a total of $1.3 trillion"
+p_caption <- "Source: FRB NY"
+
+f_labs <- c(`Borrowers` = "Percent of\nall Borrowers",
+            `Balances` = "Percent of\nall Balances")
+
+p <- ggplot(data = studebt,
+            mapping = aes(x = Debt, y = pct/100, fill = type))
+p + geom_bar(stat = "identity") +
+    scale_fill_brewer(type = "qual", palette = "Dark2") +
+    scale_y_continuous(labels = scales::percent) +
+    guides(fill = FALSE) +
+    theme(strip.text.x = element_text(face = "bold")) +
+    labs(y = NULL, x = p_xlab,
+      caption = p_caption,
+      title = p_title,
+      subtitle = p_subtitle) +
+    facet_grid(~ type, labeller = as_labeller(f_labs)) +
+    coord_flip()
+```
+
+There is a reasonable amount of customization in this graph. First, the text of the facets is made bold in the theme() call. The graphical element is first named (strip.text.x) and then modified using the element\_text() function. We also use a custom palette for the fill mapping, via scale\_fill\_brewer(). And finally we relabel the facets to something more informative than their bare variable names. This is done using the labeller argument and the as\_labeller() function inside the facet\_grid() call. At the beginning of the plotting code, we set up an object called f\_labs, which is in effect a tiny data frame that associates new labels with the values of the type variable in studebt. We use backticks (the angled quote character located next to the '1' key on US keyboards) to pick out the values we want to relabel. The as\_labeller() function takes this object and uses it to create new text for the labels when facet\_grid() is called.
+
+Substantively, how is this plot better than the pie charts? We split the data into the two categories, and showed the percentage shares as bars. The percent scores are on the x-axis. Instead of using color to distinguish the debt categories, we put their values on the y-axis instead. This means we can compare within a category just by looking down the bars. For instance, the left-hand panel shows that almost a fifth of the 44 million people with student debt owe less than five thousand dollars. Comparisons across categories are now easier as well, as we can scan across a row to see, for instance, that while just one percent or so of borrowers have more than \$200,000 in debt, that category accounts for more than 10 percent of all debts.
+
+We could also have made this bar chart by putting the percentages on the y-axis and the categories of amount owed on the x-axis. When the categorical axis labels are long, though, I generally find it's easier to read them on the y-axis. Finally, while it looks nice and helps a little to have the two categories of debt distinguished by color, the colors on the graph are not encoding or mapping any information in the data that is not already taken care of by the faceting. The fill mapping is useful, but also redundant. This graph could easily be in black and white, and would be just as informative if it were.
+
+One thing that is not emphasized in a faceted chart like this is the idea that each of the debt categories is a share or percentage of a total amount. That is what a pie chart emphasizes more than anything, but as we saw there's a perceptual price to pay for that, especially when the categories are ordered. But maybe we can hang on to the emphasis on shares by using a different kind of barplot. Instead of having separate bars distinguished by heights, we can array the percentages for each distribution proportionally within a single bar. We will make a stacked bar chart with just two main bars, and lie them on their side for comparison.
+
+```{r}
+library(viridis)
+
+p <- ggplot(studebt, aes(y = pct/100, x = type, fill = Debtrc))
+p + geom_bar(stat = "identity", color = "gray80") +
+  scale_x_discrete(labels = as_labeller(f_labs)) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_viridis(discrete = TRUE) +
+  guides(fill = guide_legend(reverse = TRUE,
+                             title.position = "top",
+                             label.position = "bottom",
+                             keywidth = 3,
+                             nrow = 1)) +
+  labs(x = NULL, y = NULL,
+       fill = "Amount Owed, in thousands of dollars",
+       caption = p_caption,
+       title = p_title,
+       subtitle = p_subtitle) +
+  theme(legend.position = "top",
+        axis.text.y = element_text(face = "bold", hjust = 1, size = 12),
+        axis.ticks.length = unit(0, "cm"),
+        panel.grid.major.y = element_blank()) +
+  coord_flip()
+```
+
+Once again, there is a substantial amount of customization in this chart. I encourage you to peel it back one option at a time to see how it changes. We use the as\_labeller() with f\_labs again, but in the labels for the x-axis this time. We make a series of adjustments in the theme() call to customize the purely visual elements of the plot, making the y-axis labels larger, right-justified, and bold via element\_text(); removing the axis tick marks, and also removing the y-axis grid lines via element\_blank().
+
+More substantively, we take a lot of care about color in Figure 8.26. First, we set the border colors of the bars to a light gray in geom\_bar() to make the bar segments easier to distinguish. Second, we draw on the viridis library again (as we did with our small-multiple maps in Chapter 7), using scale\_fill\_viridis() for the color palette. Third, we are careful to map the income categories in an ascending sequence of colors, and to adjust the key so that the values run from low to high, from left to right, and from yellow to purple. This is done partly by switching the fill mapping from Debt to Debtrc. The categories of the latter are the same as the former, but the sequence of income levels is coded in the order we want. We also show the legend to the reader first by putting it at the top, under the title and subtitle.
+
+The rest of the work is done in the guides() call. We have not used guides() much thus far except to turn off legends that we did not want to display. But here we see its usefulness. We give guides() a series of instructions about the fill mapping: reverse the direction of the color coding; put the legend title above the key; put the labels for the colors below the key; widen the width of the color boxes a little, and placenrow the whole key on a single row.
+
+reverse = TRUE title.position label.position keywidth nrow
+
+This is a lot of work, relatively speaking, but if you don't do it the plot will be much harder to read. Again, I encourage you to peel away the layers and options in sequence to see how the plot changes. The version in Figure 8.26 lets us more easily see how the categories of dollar amounts owed break down as a percentage of all balances, and as a percent of all borrowers. We can also eyeball comparisons between the two types, especially at the far end of each scale. It's easy to see how a tiny percentage of borrowers account for a disproportionately large share of total debt, for example. But even with all of this careful work, estimating the size of each individual segment is still not as easy here as it is in Figure 8.25, the faceted version. This is because it's harder to estimate sizes when we don't have an anchor point or baseline scale to compare each piece to. (In the faceted plot, that comparison point was the x-axis.) So the size of the "Under 5" segment in the bottom bar is much easier to estimate than the size of the "\$10-25" bar, for instance. Our injunction to take care about using stacked bar charts still has a lot of force, even when we try hard to make the best of them.
+
+### 8.6 Where to go next
+
+We have reached the end of our introduction. From here on, you should be in a strong position to forge ahead in two main ways. The first is to become more confident and practised with your coding. Learning ggplot should encourage you to learn more about the set of tidyverse tools, and then by extension to learn more about R in general. What you choose to pursue will (and should) be driven by your own needs and interests as a scholar or data scientist. The most natural text to look at next is Garrett Grolemund and Hadley Wickham's R for Data Science (Wickham & Grolemund, 2016), which introduces tidyverse components that we have drawn on here but not pursued in depth. Other useful texts include Chang (2013) and Roger Peng's R Programming for Data Science (2016). The most thorough introduction to ggplot in particular can be found in Wickham (2016).
+
+Pushing ahead to use ggplot for new kinds of graphs will eventually get you to the point where ggplot does not quite do what you need, or does not quite provide the sort of geom you want. In that case, the first place to look is the world of extensions to the ggplot framework. Daniel Emaasit's overview of add-on libraries for ggplot is the best place to begin your search. We have used a few extensions in the book already. Like ggrepel and ggridges, extensions typically provide a new geoms or two to work with, which may be just what you need. Sometimes, as with Thomas Lin Pedersen's ggraph, you get a whole family of geoms and associated tools---in ggraph's case, a suite of tidy methods for the visualization of network data. Other modeling and analysis tasks may require more custom work, or coding that is closely connected to the kind of analysis being done. Harrell (2016) provides many clearly worked examples, mostly based on ggplot; Gelman & Hill (2018) and (Imai, 2017) also introduce contemporary methods using R; (Silge & Robinson, 2017) present a tidy approach to analyzing and visualizing textual data; while Friendly & Meyer (2017) thoroughly explore the analysis of discrete data, an area that is often challenging to approach visually.
+
+The second way you should push ahead is by looking at and thinking about other people's graphs. The R Graph Gallery, run by Yan Holtz, is a useful collection of examples of many kinds of graphics drawn with ggplot and other R tools. PolicyVizpolicyviz.com, a site run by Jon Schwabish, covers a range of topics on data visualization. It regularly features case-studies where visualizations are reworked to improve them or cast new light on the data they present. But do not just look for examples that have code with them to begin with. As I have said before, a real strength of ggplot is the grammar of graphic that underpins it. That grammar is a model you can use to look at and interpret any graph, no matter how it was produced. It gives you a vocabulary that lets you say what the data, mappings, geoms, scales, guides, and layers of any particular graph might be. And because the grammar is implemented as the ggplot library, it is a short step from being able to anatomize the structure of a graph to being able to sketch an outline of the code you could write to reproduce it yourself.
+
+While its underlying principles and goals are relatively stable, the techniques and tools of research are changing. This is especially true within the social sciences (Salganik, 2018). Data visualization is an excellent entry-point to these new developments. Our tools for it are more versatile and powerful than ever. So, you should look at your data. Looking is not a replacement for thinking. It cannot force you to be honest; it cannot magically prevent you from making mistakes; and it cannot make your ideas true. But if you analyze data, visualization can help you uncover features in it. If you are honest, it can help you live up to your own standards. When you inevitably make errors, it can help you find and correct them. And if you have an idea and some good evidence for it, it can help you show it in a compelling way.
+
+-   r4ds.had.co.nz/
+-   leanpub.com/rprogramming
+-   ggplot2-exts.org
+-   r-graph-gallery.com
+-   policyviz.com
